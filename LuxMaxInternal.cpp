@@ -406,7 +406,7 @@ int LuxMaxInternal::Render(
 					{
 						DWORD vi = face->v[v];
 						Point3 vPos = p_trimesh->verts[vi];
-						p[vindex] = Point(vPos * currNode->GetNodeTM(t));
+						p[vindex] = Point(vPos * currNode->GetObjectTM(GetCOREInterface()->GetTime()));
 						vindex += 1;
 					}
 				}
