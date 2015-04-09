@@ -17,6 +17,7 @@
 ***************************************************************************/
 
 #define LUXCORE_MATTE_CLASSID Class_ID(0x98265f22, 0x2cf529dd)
+#define CAMERAHELPER_CLASSID Class_ID(4128,0)
 
 #include "LuxMaxInternalpch.h"
 #include "resource.h"
@@ -28,6 +29,7 @@
 #include <bitmap.h>
 #include <GraphicsWindow.h>
 #include <IColorCorrectionMgr.h>
+#include <IGame\IGame.h>
 
 #include <string>
 #include <string.h>
@@ -258,6 +260,45 @@ static void DoRendering(RenderSession *session) {
 	session->GetFilm().Save();
 }
 
+Point3 GetVertexNormal(::Mesh* mesh, int faceNo, RVertex* rv)
+{
+	Face* f = &mesh->faces[faceNo];
+	DWORD smGroup = f->smGroup;
+	int numNormals;
+	Point3 vertexNormal;
+
+	if (rv->rFlags & SPECIFIED_NORMAL)
+	{
+		vertexNormal = rv->rn.getNormal();
+	}
+	else if ((numNormals = rv->rFlags & NORCT_MASK))// && smGroup)
+	{
+		if (numNormals == 1)
+		{
+			vertexNormal = rv->rn.getNormal();
+		}
+		else
+		{
+			for (int i = 0; i < numNormals; i++)
+			{
+				if (rv->ern[i].getSmGroup() )//& smGroup)
+				{
+					vertexNormal = rv->ern[i].getNormal();
+				}
+			}
+		}
+//#pragma warning(pop)
+	}
+	else
+	{
+		vertexNormal = mesh->getFaceNormal(faceNo);
+		//mprintf(_T("Got face normal instead of vertex normal for face %i\n"), faceNo);
+	}
+
+	return vertexNormal;
+}
+
+
 int LuxMaxInternal::Render(
 	TimeValue t,   			// frame to render.
 	Bitmap *tobm, 			// optional target bitmap
@@ -276,7 +317,7 @@ int LuxMaxInternal::Render(
 	mprintf(_T("\nRendering Frame: %i \n"), frameNum);
 
 	Scene *scene = new Scene();
-	GraphicsWindow *gwd;
+//	GraphicsWindow *gwd;
 
 	// Define texture maps
 	const u_int size = 500;
@@ -369,154 +410,187 @@ int LuxMaxInternal::Render(
 								//	foundCamera = true;
 								break;
 		}
+		
 
 		case GEOMOBJECT_CLASS_ID:
-			//	if (currNode->ClassID == HELPER_CLASS_ID)
-			//	{
-			//		doExport = false;
-			//		mprintf(L"Skipping meshing of object : %s\n", currNode->GetName());
+			
 
-			//	}
 			if (doExport)
 			{
-				Object *pObj = currNode->GetObjectRef();
-				IDerivedObject *pDerObj;
-				Modifier *Mod;
-				Matrix3 nodeInitTM;
-				Point4 nodeRotation;
 
-				TriObject *p_triobj = NULL;
+					Object *pObj = currNode->GetObjectRef();
+					IDerivedObject *pDerObj;
+					Modifier *Mod;
+					Matrix3 nodeInitTM;
+					Point4 nodeRotation;
 
-				BOOL fConvertedToTriObject = obj->CanConvertToType(triObjectClassID) && (p_triobj = (TriObject*)obj->ConvertToType(0, triObjectClassID)) != NULL;
-				if (!fConvertedToTriObject)
-				{
-					mprintf(L"Error: Could not triangulate object : %s\n", currNode->GetName());
-					break;
-					//return false;
-				}
+					TriObject *p_triobj = NULL;
 
-				//use the ::Mesh to get the 'base class's' mesh class (3dsmax SDK)
-				//If you do not do this then it conflicts with Luxrays's mesh class.
-
-				::Mesh *p_trimesh = &p_triobj->mesh;
-				int faceCount = p_trimesh->getNumFaces();
-				int numUvs = p_trimesh->getNumTVerts();
-
-				//Create buffers for holding the mesh data.
-				Point *p = new Point[faceCount * 3];
-				Triangle *vi = new Triangle[faceCount];
-
-				bool enableUV = false;
-				if (enableUV)
-				{
-					UV *uv = NULL;
-					if (numUvs > 0)
+					BOOL fConvertedToTriObject = obj->CanConvertToType(triObjectClassID) && (p_triobj = (TriObject*)obj->ConvertToType(0, triObjectClassID)) != NULL;
+					if (!fConvertedToTriObject)
 					{
-						uv = new UV[numUvs];
+						mprintf(L"Error: Could not triangulate object : %s\n", currNode->GetName());
+						break;
+						//return false;
 					}
-				}
 
-				int vindex = 0;
-				for (int f = 0; f < p_trimesh->getNumFaces(); ++f)
-				{
-					Face* face = &p_trimesh->faces[f];
-					for (int v = 0; v < 3; ++v)
+					//use the ::Mesh to get the 'base class's' mesh class (3dsmax SDK)
+					//If you do not do this then it conflicts with Luxrays's mesh class.
+
+					::Mesh *p_trimesh = &p_triobj->mesh;
+					int faceCount = p_trimesh->getNumFaces();
+					int numUvs = p_trimesh->getNumTVerts();
+
+					//Create buffers for holding the mesh data.
+					Point *p = new Point[faceCount * 3];
+					Triangle *vi = new Triangle[faceCount];
+					Normal *n = new Normal[faceCount * 3];
+
+					bool enableUV = false;
+					if (enableUV)
 					{
-						DWORD vi = face->v[v];
-						Point3 vPos = p_trimesh->verts[vi];
-						p[vindex] = Point(vPos * currNode->GetObjectTM(GetCOREInterface()->GetTime()));
-						vindex += 1;
-					}
-				}
-
-				for (int f = 0; f < p_trimesh->getNumFaces(); ++f)
-				{
-					Face* face = &p_trimesh->faces[f];
-					vi[f] = Triangle(f * 3 + 0, f * 3 + 1, f * 3 + 2);
-				}
-
-				if (!enableUV) {
-					// Define the object - for now without UV and no normals.
-					scene->DefineMesh(ToNarrow(currNode->GetName()), p_trimesh->getNumVerts(), p_trimesh->getNumFaces(), p, vi, NULL, NULL, NULL, NULL);
-				}
-
-				Properties props;
-				std::string objString;
-
-				objString = "scene.objects.";
-				objString.append(ToNarrow(currNode->GetName()));
-				objString.append(".ply = ");
-				objString.append(ToNarrow(currNode->GetName()));
-				objString.append("\n");
-				props.SetFromString(objString);
-				objString = "";
-
-				Mtl *objmat = NULL;
-				objmat = currNode->GetMtl();
-				if (objmat != NULL)
-				{
-					int numsubs = 0;
-					numsubs = objmat->NumSubMtls();
-
-					for (int f = 0; f < numsubs; ++f)
-					{
-						if (objmat->ClassID() == LUXCORE_MATTE_CLASSID)
+						UV *uv = NULL;
+						if (numUvs > 0)
 						{
-							objString.append("scene.materials.");
-							objString.append(currNode->GetMtl()->GetName().ToCStr());
-							objString.append(".type");
+							uv = new UV[numUvs];
+						}
+					}
 
-							scene->Parse(
-								Property(objString)("matte") <<
-								Property("")("")
-								);
-							objString = "";
 
-							scene->Parse(
-								Property("scene.materials.tmpMat.type")("matte") <<
-								Property("")("")
-								);
+					p_trimesh->checkNormals(true);
+					//p_trimesh->buildNormals();
+					
+					Point3 normal;
+					int counter = 0;
 
-							mprintf(L"Exporting out material Luxcore matte,named: %s\n", currNode->GetMtl()->GetName());
-							//mprintf(L"Num Param blocks in material: %i\n", objmat->NumParamBlocks());
-							for (int i = 0, count = objmat->NumParamBlocks(); i < count; ++i)
+					for (int f = 0; f < p_trimesh->getNumFaces(); ++f)
+					{
+						Point3 normal;
+						Face* face = &p_trimesh->faces[f];
+
+						for (int v = 0; v < 3; ++v)
+						{
+							DWORD vi = face->v[v];
+							Point3 normal;
+							if (p_trimesh->getRVertPtr(vi))
+								normal = GetVertexNormal(p_trimesh, f, p_trimesh->getRVertPtr(vi));
+							else
+								normal = Point3(0, 0, 1);
+							
+							n[counter].x = normal.x;
+							n[counter].y = normal.y;
+							n[counter].z = normal.z;
+							
+							counter++;
+						}
+					}
+
+					int vindex = 0;
+					for (int f = 0; f < p_trimesh->getNumFaces(); ++f)
+					{
+						Face* face = &p_trimesh->faces[f];
+						for (int v = 0; v < 3; ++v)
+						{
+							DWORD vi = face->v[v];
+							Point3 vPos = p_trimesh->verts[vi];
+							p[vindex] = Point(vPos * currNode->GetObjectTM(GetCOREInterface()->GetTime()));
+							vindex += 1;
+						}
+					}
+
+					for (int f = 0; f < p_trimesh->getNumFaces(); ++f)
+					{
+						Face* face = &p_trimesh->faces[f];
+						vi[f] = Triangle(f * 3 + 0, f * 3 + 1, f * 3 + 2);
+					}
+
+					if (!enableUV) {
+						// Define the object - for now without UV and no normals.
+						scene->DefineMesh(ToNarrow(currNode->GetName()), p_trimesh->getNumVerts(), p_trimesh->getNumFaces(), p, vi, n, NULL, NULL, NULL);
+					}
+
+					p = NULL;
+					vi = NULL;
+					n = NULL;
+
+					Properties props;
+					std::string objString;
+
+					objString = "scene.objects.";
+					objString.append(ToNarrow(currNode->GetName()));
+					objString.append(".ply = ");
+					objString.append(ToNarrow(currNode->GetName()));
+					objString.append("\n");
+					props.SetFromString(objString);
+					objString = "";
+
+					Mtl *objmat = NULL;
+					objmat = currNode->GetMtl();
+					if (objmat != NULL)
+					{
+						int numsubs = 0;
+						numsubs = objmat->NumSubMtls();
+
+						for (int f = 0; f < numsubs; ++f)
+						{
+							if (objmat->ClassID() == LUXCORE_MATTE_CLASSID)
 							{
-								IParamBlock2 *pBlock = objmat->GetParamBlock(i);
+								objString.append("scene.materials.");
+								objString.append(currNode->GetMtl()->GetName().ToCStr());
+								objString.append(".type");
 
-								::Point3 diffcol;
-								diffcol = pBlock->GetPoint3(3, GetCOREInterface()->GetTime(), 0);
-
-								mprintf(L"Setting material diffuse RGB: %f %f %f\n", diffcol.x, diffcol.y, diffcol.z);
-								::std::string tmpMatStr;
-								tmpMatStr.append("scene.materials.");
-								tmpMatStr.append(ToNarrow(currNode->GetMtl()->GetName()));
-								tmpMatStr.append(".kd");
-								mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
 								scene->Parse(
-									Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
+									Property(objString)("matte") <<
 									Property("")("")
-
 									);
-								tmpMatStr = "";
+								objString = "";
 
 								scene->Parse(
 									Property("scene.materials.tmpMat.type")("matte") <<
-									Property("scene.materials.tmpMat.kd")(float(diffcol.x), float(diffcol.y), float(diffcol.z))
+									Property("")("")
 									);
+
+								mprintf(L"Exporting out material Luxcore matte,named: %s\n", currNode->GetMtl()->GetName());
+								//mprintf(L"Num Param blocks in material: %i\n", objmat->NumParamBlocks());
+								for (int i = 0, count = objmat->NumParamBlocks(); i < count; ++i)
+								{
+									IParamBlock2 *pBlock = objmat->GetParamBlock(i);
+
+									::Point3 diffcol;
+									diffcol = pBlock->GetPoint3(3, GetCOREInterface()->GetTime(), 0);
+
+									mprintf(L"Setting material diffuse RGB: %f %f %f\n", diffcol.x, diffcol.y, diffcol.z);
+									::std::string tmpMatStr;
+									tmpMatStr.append("scene.materials.");
+									tmpMatStr.append(ToNarrow(currNode->GetMtl()->GetName()));
+									tmpMatStr.append(".kd");
+									mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
+									scene->Parse(
+										Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
+										Property("")("")
+
+										);
+									tmpMatStr = "";
+
+									scene->Parse(
+										Property("scene.materials.tmpMat.type")("matte") <<
+										Property("scene.materials.tmpMat.kd")(float(diffcol.x), float(diffcol.y), float(diffcol.z))
+										);
+								}
 							}
 						}
 					}
-				}
 
-				objString = "";
-				objString.append("scene.objects.");
-				objString.append(ToNarrow(currNode->GetName()));
-				objString.append(".material = ");
-				objString.append(ToNarrow(currNode->GetMtl()->GetName()));
-				props.SetFromString(objString);
+					objString = "";
+					objString.append("scene.objects.");
+					objString.append(ToNarrow(currNode->GetName()));
+					objString.append(".material = ");
+					objString.append(ToNarrow(currNode->GetMtl()->GetName()));
+					props.SetFromString(objString);
 
-				scene->Parse(props);
-				//delete p, vi;// , uv;
+					scene->Parse(props);
+					//delete p, vi;// , uv;
+			
 			}
 		}
 	}

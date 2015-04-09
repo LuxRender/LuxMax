@@ -147,6 +147,7 @@ enum {
 	mtl_mat1,
 	mtl_mat1_on,
 	pb_diffuse,
+	pb_texdiffuse,
 };
 
 
@@ -160,6 +161,12 @@ static ParamBlockDesc2 LuxMax_Internal_matte_param_blk ( LuxMax_Internal_matte_p
 	//IDC_DIFFUSE
 	pb_diffuse, _T("diffuse"), TYPE_POINT3, P_ANIMATABLE, "diffuse",
 	p_ui, TYPE_COLORSWATCH, IDC_DIFFUSE,
+	p_end,
+
+	pb_texdiffuse, _T("mtl_diffuse_Texture"), TYPE_TEXMAP, P_OWNERS_REF, "diffuse_texture",
+	p_refno, 0,
+	p_submtlno, 0,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_TEX1,
 	p_end,
 
 	pb_spin, 			_T("spin"), 		TYPE_FLOAT, 	P_ANIMATABLE, 	IDS_SPIN, 
@@ -466,7 +473,7 @@ void LuxMax_Internal_Matte::Update(TimeValue t, Interval& valid)
 		pblock->GetValue( mtl_mat1_on, t, mapOn[0], ivalid);
 		pblock->GetValue( pb_spin, t, spin, ivalid);
 		pblock->GetValue(pb_diffuse, t, colorswatch, ivalid);
-		 
+		pblock->GetValue(pb_texdiffuse,t,)
 		for (int i=0; i < NUM_SUBMATERIALS; i++) {
 			if (submtl[i])
 				submtl[i]->Update(t,ivalid);

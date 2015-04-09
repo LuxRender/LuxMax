@@ -18,6 +18,8 @@
 #define IDC_SPIN                        1496
 #define IDC_MTL1                        1497
 #define IDC_MTLON1                      1498
+#define IDC_MTL2                        1499
+#define IDC_TEX1                        1499
 
 // Next default values for new objects
 // 
