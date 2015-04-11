@@ -455,11 +455,8 @@ int LuxMaxInternal::Render(
 								scene->Parse(
 									Property("scene.camera.lookat.orig")(camTrans.x, camTrans.y, camTrans.z) <<
 									Property("scene.camera.lookat.target")(targetPos.GetTrans().x, targetPos.GetTrans().y, targetPos.GetTrans().z) <<
-									Property("scene.camera.fieldofview")(45)
-
+									Property("scene.camera.fieldofview")(cameraPtr->GetFOV(t, FOREVER) * 180 / pi)
 									);
-								//mprintf(L"Setting FOV to: %f\n", cameraPtr->GetFOV(t,FOREVER));
-								//	foundCamera = true;
 								break;
 		}
 		
