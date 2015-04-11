@@ -518,17 +518,18 @@ int LuxMaxInternal::Render(
 					Point *p = new Point[faceCount * 3];
 					Triangle *vi = new Triangle[faceCount];
 					Normal *n = new Normal[faceCount * 3];
-
-					bool enableUV = false;
-					if (enableUV)
+					UV *uv = NULL;
+	
+					if (numUvs > 0)
 					{
-						UV *uv = NULL;
-						if (numUvs > 0)
+						uv = new UV[numUvs];
+						for (int u = 0; u < numUvs; u++)
 						{
-							uv = new UV[numUvs];
+							uv[u].u = p_trimesh->getTVert(u).x;
+							uv[u].v = p_trimesh->getTVert(u).y;
 						}
 					}
-
+					
 					
 					p_trimesh->checkNormals(true);
 					p_trimesh->buildNormals();
@@ -577,14 +578,20 @@ int LuxMaxInternal::Render(
 						vi[f] = Triangle(f * 3 + 0, f * 3 + 1, f * 3 + 2);
 					}
 
-					if (!enableUV) {
-						// Define the object - for now without UV and no normals.
+					if (p_trimesh->getNumTVerts() < 1) {
+						// Define the object - without UV 
 						scene->DefineMesh(ToNarrow(objName), p_trimesh->getNumVerts(), p_trimesh->getNumFaces(), p, vi, n, NULL, NULL, NULL);
+					}
+					else
+					{
+						// Define the object - with UV 
+						scene->DefineMesh(ToNarrow(objName), p_trimesh->getNumVerts(), p_trimesh->getNumFaces(), p, vi, n, uv, NULL, NULL);
 					}
 
 					p = NULL;
 					vi = NULL;
 					n = NULL;
+					uv = NULL;
 
 					Properties props;
 					std::string objString;
