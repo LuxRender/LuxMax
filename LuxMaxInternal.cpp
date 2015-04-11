@@ -58,6 +58,9 @@ using namespace luxrays;
 extern BOOL FileExists(const TCHAR *filename);
 float* pixels;
 
+int renderWidth = 0;
+int renderHeight = 0;
+
 std::string ToNarrow(const wchar_t *s, char dfault = '?',
 	const std::locale& loc = std::locale())
 {
@@ -254,7 +257,10 @@ static void DoRendering(RenderSession *session) {
 		SLG_LOG(buf);
 	}
 
-	pixels = new float[921600]();
+	
+	int pixelArraySize = renderWidth * renderHeight * 3;
+	
+	pixels = new float[pixelArraySize]();
 
 	session->GetFilm().GetOutput(session->GetFilm().OUTPUT_RGB_TONEMAPPED, pixels, 0);
 	session->GetFilm().Save();
@@ -675,6 +681,9 @@ int LuxMaxInternal::Render(
 		mprintf(_T("\nRendering to: %s \n"), FileName.ToMSTR());
 	}
 
+	renderWidth = GetCOREInterface11()->GetRendWidth();
+	renderHeight = GetCOREInterface11()->GetRendHeight();
+
 	RenderConfig *config = new RenderConfig(
 		Property("renderengine.type")("PATHCPU") <<
 		Property("sampler.type")("RANDOM") <<
@@ -686,13 +695,17 @@ int LuxMaxInternal::Render(
 		Property("film.outputs.1.filename")(tmpFilename) <<
 		Property("film.imagepipeline.0.type")("TONEMAP_AUTOLINEAR") <<
 		Property("film.imagepipeline.1.type")("GAMMA_CORRECTION") <<
+		Property("film.height")(renderHeight) <<
+		Property("film.width")(renderWidth) <<
 		Property("film.imagepipeline.1.value")(1.0f),
 		scene);
 	RenderSession *session = new RenderSession(config);
 
 	session->Start();
+
 	DoRendering(session);
 	session->Stop();
+	
 
 	int i = 0;
 
@@ -701,9 +714,9 @@ int LuxMaxInternal::Render(
 	col64.g = 0;
 	col64.b = 0;
 	//fill in the pixels
-	for (int w = 480; w > 0; w--)
+	for (int w = renderHeight; w > 0; w--)
 	{
-		for (int h = 0; h < 640; h++)
+		for (int h = 0; h < renderWidth; h++)
 		{
 			col64.r = (WORD)floorf(pixels[i] * 65535.f + .5f);
 			col64.g = (WORD)floorf(pixels[i + 1] * 65535.f + .5f);
