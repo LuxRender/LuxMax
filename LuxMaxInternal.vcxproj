@@ -69,7 +69,7 @@
     <IncludePath>C:\development\lux\windows_deps\x64\Release\lib;C:\boost_1_56_0\lib64-msvc-11.0\;C:\development\lux\windows_deps\include\Boost;C:\development\lux\windows\Build_CMake\LuxRays\lib\Release;C:\development\lux\luxrays\include\;C:\development\lux\luxrays\include\luxcore\;$(IncludePath);C:\development\lux\luxrays\include;C:\development\lux\windows_deps\include\OpenImageIO;C:\development\lux\windows_deps\include\OpenEXR;C:\development\lux\windows_deps\include;C:\development\lux\windows_deps\include\Python3</IncludePath>
     <LibraryPath>C:\development\lux\windows\Build_CMake\LuxRays\lib\Release\;C:\boost_1_56_0\lib64-msvc-11.0;$(LibraryPath)</LibraryPath>
     <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
-    <IntDir>C:\development\pbrt4max\intermidiatedir\</IntDir>
+    <IntDir>$(LocalDebuggerWorkingDirectory)\intermidiate\</IntDir>
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup>
