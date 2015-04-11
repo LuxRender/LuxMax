@@ -364,6 +364,8 @@ int LuxMaxInternal::Render(
 	using namespace luxrays;
 	using namespace luxcore;
 
+	const wchar_t *renderProgTitle = NULL;
+
 	mprintf(_T("\nRendering with Luxcore version: %s,%s \n"), LUXCORE_VERSION_MAJOR, LUXCORE_VERSION_MINOR);
 	int frameNum = t / GetTicksPerFrame();
 	mprintf(_T("\nRendering Frame: %i \n"), frameNum);
@@ -419,7 +421,12 @@ int LuxMaxInternal::Render(
 	INode* maxscene = GetCOREInterface7()->GetRootNode();
 	for (int a = 0; maxscene->NumChildren() > a; a++)
 	{
+		
 		INode* currNode = maxscene->GetChildNode(a);
+		
+
+		renderProgTitle = (L"Translating object: %s", currNode->GetName());
+		prog->SetTitle(renderProgTitle);
 		Object*	obj;
 		ObjectState os = currNode->EvalWorldState(GetCOREInterface()->GetTime());
 		obj = os.obj;
@@ -522,7 +529,7 @@ int LuxMaxInternal::Render(
 						}
 					}
 
-
+					
 					p_trimesh->checkNormals(true);
 					p_trimesh->buildNormals();
 					
