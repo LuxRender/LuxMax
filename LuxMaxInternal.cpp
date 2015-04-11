@@ -298,6 +298,52 @@ Point3 GetVertexNormal(::Mesh* mesh, int faceNo, RVertex* rv)
 	return vertexNormal;
 }
 
+std::string ReplaceAll(std::string str, const std::string& from, const std::string& to) {
+	size_t start_pos = 0;
+	while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+		str.replace(start_pos, from.length(), to);
+		start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+	}
+	return str;
+}
+
+
+bool replace(std::string& str, const std::string& from, const std::string& to) {
+	size_t start_pos = str.find(from);
+	if (start_pos == std::string::npos)
+		return false;
+	str.replace(start_pos, from.length(), to);
+	return true;
+}
+
+std::string removeUnwatedChars(std::string& str)
+{
+	str.erase(remove_if(str.begin(), str.end(), isspace), str.end());
+	replace(str, "#", "_");
+	replace(str, ".", "_");
+	replace(str, ",", "_");
+	replace(str, """", "_");
+	replace(str, "¤", "_");
+	replace(str, "%25", "_");
+	replace(str, "&", "_");
+	replace(str, "/", "_");
+	replace(str, "(", "_");
+	replace(str, ")", "_");
+	replace(str, "=", "_");
+	replace(str, "?", "_");
+	replace(str, "+", "_");
+	replace(str, "\\", "_");
+	replace(str, "`", "_");
+	replace(str, "^", "_");
+	replace(str, "¨", "_");
+	replace(str, "|", "_");
+	replace(str, "*", "_");
+	replace(str, "'", "_");
+	replace(str, ";", "_");
+	replace(str, ":", "_");
+
+	return str;
+}
 
 int LuxMaxInternal::Render(
 	TimeValue t,   			// frame to render.
@@ -423,16 +469,33 @@ int LuxMaxInternal::Render(
 					Modifier *Mod;
 					Matrix3 nodeInitTM;
 					Point4 nodeRotation;
-
 					TriObject *p_triobj = NULL;
 
 					BOOL fConvertedToTriObject = obj->CanConvertToType(triObjectClassID) && (p_triobj = (TriObject*)obj->ConvertToType(0, triObjectClassID)) != NULL;
+					
 					if (!fConvertedToTriObject)
 					{
 						mprintf(L"Error: Could not triangulate object : %s\n", currNode->GetName());
 						break;
 						//return false;
 					}
+					const wchar_t *objName = L"";
+					std::string tmpName = ToNarrow(currNode->GetName());
+					removeUnwatedChars(tmpName);
+					std::wstring replacedObjName = std::wstring(tmpName.begin(), tmpName.end());
+					objName = replacedObjName.c_str();
+
+					const wchar_t *matName = L"";
+					matName = currNode->GetMtl()->GetName();
+					std::string tmpMatName = ToNarrow(matName);
+					removeUnwatedChars(tmpMatName);
+					std::wstring replacedMaterialName = std::wstring(tmpMatName.begin(), tmpMatName.end());
+					matName = replacedMaterialName.c_str();
+
+					//mprintf(L"Translating mesh object : %s\n", objName);
+					//mprintf(L"Translating material : %s\n", matName);
+
+					
 
 					//use the ::Mesh to get the 'base class's' mesh class (3dsmax SDK)
 					//If you do not do this then it conflicts with Luxrays's mesh class.
@@ -458,7 +521,7 @@ int LuxMaxInternal::Render(
 
 
 					p_trimesh->checkNormals(true);
-					//p_trimesh->buildNormals();
+					p_trimesh->buildNormals();
 					
 					Point3 normal;
 					int counter = 0;
@@ -506,7 +569,7 @@ int LuxMaxInternal::Render(
 
 					if (!enableUV) {
 						// Define the object - for now without UV and no normals.
-						scene->DefineMesh(ToNarrow(currNode->GetName()), p_trimesh->getNumVerts(), p_trimesh->getNumFaces(), p, vi, n, NULL, NULL, NULL);
+						scene->DefineMesh(ToNarrow(objName), p_trimesh->getNumVerts(), p_trimesh->getNumFaces(), p, vi, n, NULL, NULL, NULL);
 					}
 
 					p = NULL;
@@ -517,9 +580,9 @@ int LuxMaxInternal::Render(
 					std::string objString;
 
 					objString = "scene.objects.";
-					objString.append(ToNarrow(currNode->GetName()));
+					objString.append(ToNarrow(objName));
 					objString.append(".ply = ");
-					objString.append(ToNarrow(currNode->GetName()));
+					objString.append(ToNarrow(objName));
 					objString.append("\n");
 					props.SetFromString(objString);
 					objString = "";
@@ -536,7 +599,7 @@ int LuxMaxInternal::Render(
 							if (objmat->ClassID() == LUXCORE_MATTE_CLASSID)
 							{
 								objString.append("scene.materials.");
-								objString.append(currNode->GetMtl()->GetName().ToCStr());
+								objString.append(ToNarrow(matName));
 								objString.append(".type");
 
 								scene->Parse(
@@ -550,7 +613,7 @@ int LuxMaxInternal::Render(
 									Property("")("")
 									);
 
-								mprintf(L"Exporting out material Luxcore matte,named: %s\n", currNode->GetMtl()->GetName());
+								//mprintf(L"Exporting out material Luxcore matte,named: %s\n", matName);
 								//mprintf(L"Num Param blocks in material: %i\n", objmat->NumParamBlocks());
 								for (int i = 0, count = objmat->NumParamBlocks(); i < count; ++i)
 								{
@@ -559,12 +622,12 @@ int LuxMaxInternal::Render(
 									::Point3 diffcol;
 									diffcol = pBlock->GetPoint3(3, GetCOREInterface()->GetTime(), 0);
 
-									mprintf(L"Setting material diffuse RGB: %f %f %f\n", diffcol.x, diffcol.y, diffcol.z);
+									//mprintf(L"Setting material diffuse RGB: %f %f %f\n", diffcol.x, diffcol.y, diffcol.z);
 									::std::string tmpMatStr;
 									tmpMatStr.append("scene.materials.");
-									tmpMatStr.append(ToNarrow(currNode->GetMtl()->GetName()));
+									tmpMatStr.append(ToNarrow(matName));
 									tmpMatStr.append(".kd");
-									mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
+									//mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
 									scene->Parse(
 										Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
 										Property("")("")
@@ -583,14 +646,12 @@ int LuxMaxInternal::Render(
 
 					objString = "";
 					objString.append("scene.objects.");
-					objString.append(ToNarrow(currNode->GetName()));
+					objString.append(ToNarrow(objName));
 					objString.append(".material = ");
-					objString.append(ToNarrow(currNode->GetMtl()->GetName()));
+					objString.append(ToNarrow(matName));
 					props.SetFromString(objString);
 
 					scene->Parse(props);
-					//delete p, vi;// , uv;
-			
 			}
 		}
 	}
