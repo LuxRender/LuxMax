@@ -441,7 +441,7 @@ int LuxMaxInternal::Render(
 
 								if (camNode == NULL)
 								{
-									mprintf(L"ERROR: Set active view to a camera and try again.\n");
+									MessageBox(0, L"Set active view to a target camera and render again.", L"Error!", MB_OK);
 									return false;
 									break;
 								}
