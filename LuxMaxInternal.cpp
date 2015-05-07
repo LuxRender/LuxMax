@@ -262,38 +262,47 @@ Properties exportOmni(INode* Omni)
 	Properties props;
 	std::string objString;
 
-		objString = "scene.lights.";
+		objString.append("scene.lights.");
 		objString.append(ToNarrow(Omni->GetName()));
 		objString.append(".type = point");
 		objString.append("\n");
-		props.SetFromString(objString);
-		objString = "";
 
-		objString = "scene.lights.";
+		objString.append("scene.lights.");
 		objString.append(ToNarrow(Omni->GetName()));
 		objString.append(".position = ");
 		objString.append(::to_string(trans.x) + " " + ::to_string(trans.y) + " " + ::to_string(trans.z));
 		objString.append("\n");
+		
+		ObjectState ostate = Omni->EvalWorldState(0);
+		LightObject *light = (LightObject*)ostate.obj;
+		color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
+	
+		objString.append("scene.lights.");
+		objString.append(ToNarrow(Omni->GetName()));
+		objString.append(".color = ");
+		objString.append(::to_string(color.x / 255) + " " + ::to_string(color.y / 255) + " " + ::to_string(color.z / 255));
+		objString.append("\n");
 		props.SetFromString(objString);
-		objString = "";
-
-		for (int i = 0, count = Omni->NumParamBlocks(); i < count; ++i)
-		{
-			IParamBlock2 *pBlock = Omni->GetParamBlock(i);
-			color = pBlock->GetPoint3(0, GetCOREInterface()->GetTime(), 0);
-		}
-
-		//objString = "scene.lights.";
-		//	objString.append(ToNarrow(currNode->GetName()));
-		//	objString.append(".color");
-		//	scene->Parse(
-		//		Property(objString)(color.x, color.y, color.z) <<
-		//		Property("")("")
-		//		);
 
 		objString = "";
 		return props;
 }
+
+void spectral_color(float &r, float &g, float &b, float l) // RGB <0,1> <- lambda l <400,700> [nm]
+{
+	double t;  r = 0.0; g = 0.0; b = 0.0;
+	if ((l >= 400.0) && (l<410.0)) { t = (l - 400.0) / (410.0 - 400.0); r = +(0.33*t) - (0.20*t*t); }
+	else if ((l >= 410.0) && (l<475.0)) { t = (l - 410.0) / (475.0 - 410.0); r = 0.14 - (0.13*t*t); }
+	else if ((l >= 545.0) && (l<595.0)) { t = (l - 545.0) / (595.0 - 545.0); r = +(1.98*t) - (t*t); }
+	else if ((l >= 595.0) && (l<650.0)) { t = (l - 595.0) / (650.0 - 595.0); r = 0.98 + (0.06*t) - (0.40*t*t); }
+	else if ((l >= 650.0) && (l<700.0)) { t = (l - 650.0) / (700.0 - 650.0); r = 0.65 - (0.84*t) + (0.20*t*t); }
+	if ((l >= 415.0) && (l<475.0)) { t = (l - 415.0) / (475.0 - 415.0); g = +(0.80*t*t); }
+	else if ((l >= 475.0) && (l<590.0)) { t = (l - 475.0) / (590.0 - 475.0); g = 0.8 + (0.76*t) - (0.80*t*t); }
+	else if ((l >= 585.0) && (l<639.0)) { t = (l - 585.0) / (639.0 - 585.0); g = 0.84 - (0.84*t); }
+	if ((l >= 400.0) && (l<475.0)) { t = (l - 400.0) / (475.0 - 400.0); b = +(2.20*t) - (1.50*t*t); }
+	else if ((l >= 475.0) && (l<560.0)) { t = (l - 475.0) / (560.0 - 475.0); b = 0.7 - (t)+(0.30*t*t); }
+}
+//---------------------------------------------------------------------------
 
 Properties exportSpotLight(INode* SpotLight)
 {
@@ -301,73 +310,53 @@ Properties exportSpotLight(INode* SpotLight)
 	std::string objString;
 	::Point3 trans = SpotLight->GetNodeTM(GetCOREInterface11()->GetTime()).GetTrans();
 	::Matrix3 targetPos;
-	Object*	obj;
+	
 	ObjectState os = SpotLight->EvalWorldState(GetCOREInterface()->GetTime());
-	LightObject*   lightPtr = (LightObject *)os.obj;
-
-	//Standard spotlight
-
-	/*scene.lights.l1.type = spot
-	scene.lights.l1.position = -3.0 - 5.0 6.0
-	scene.lights.l1.target = -3.0 - 5.0 0.0
-	scene.lights.l1.gain = 500.0 500.0 500.0
-	scene.lights.l1.coneangle = 60.0
-	scene.lights.l1.conedeltaangle = 50.0*/
+	LightObject *light = (LightObject*)os.obj;
 	
-	
+	::Point3 color;
+	color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
+
 	SpotLight->GetTargetTM(GetCOREInterface11()->GetTime(), targetPos);
 	trans = SpotLight->GetNodeTM(GetCOREInterface11()->GetTime(), 0).GetTrans();
 
-	objString = "scene.lights.";
+	objString.append("scene.lights.");
 	objString.append(ToNarrow(SpotLight->GetName()));
 	objString.append(".type = spot");
 	objString.append("\n");
-	props.SetFromString(objString);
-	objString = "";
 
-	objString = "scene.lights.";
+	objString.append("scene.lights.");
 	objString.append(ToNarrow(SpotLight->GetName()));
 	objString.append(".position = ");
 	objString.append(::to_string(trans.x) + " " + ::to_string(trans.y) + " " + ::to_string(trans.z));
 	objString.append("\n");
-	props.SetFromString(objString);
-	objString = "";
 
-	objString = "scene.lights.";
+	objString.append("scene.lights.");
 	objString.append(ToNarrow(SpotLight->GetName()));
 	objString.append(".target = ");
 	objString.append(::to_string(targetPos.GetTrans().x) + " " + ::to_string(targetPos.GetTrans().y) + " " + ::to_string(targetPos.GetTrans().z));
 	objString.append("\n");
-	props.SetFromString(objString);
-	objString = "";
 
-	objString = "scene.lights.";
+	objString.append("scene.lights.");
 	objString.append(ToNarrow(SpotLight->GetName()));
 	objString.append(".coneangle = ");
-	objString.append(::to_string(lightPtr->GetHotspot(GetCOREInterface11()->GetTime(), FOREVER)));
+	objString.append(::to_string(light->GetHotspot(GetCOREInterface11()->GetTime(), FOREVER)));
 	objString.append("\n");
-	props.SetFromString(objString);
-	objString = "";
 
-	objString = "scene.lights.";
+	objString.append("scene.lights.");
 	objString.append(ToNarrow(SpotLight->GetName()));
 	objString.append(".conedeltaangle = ");
-	objString.append(to_string(lightPtr->GetFallsize(GetCOREInterface11()->GetTime(), FOREVER) * 180 / 3.14159265));
+	objString.append(to_string(light->GetFallsize(GetCOREInterface11()->GetTime(), FOREVER))); //* 180 / 3.14159265));
 	objString.append("\n");
-	props.SetFromString(objString);
-	objString = "";
 
-	objString = "scene.lights.";
+	objString.append("scene.lights.");
 	objString.append(ToNarrow(SpotLight->GetName()));
-	objString.append(".gain = 500 500 500");
+	objString.append(".gain = ");
+	float gainval = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
+	objString.append(::to_string(gainval * color.x) + " " + ::to_string(gainval * color.y) + " " + ::to_string(gainval * color.z));
 	objString.append("\n");
-	props.SetFromString(objString);
-	objString = "";
-	
-	//scene.lights.l1.coneangle = 60.0
-	//scene.lights.l1.conedeltaangle = 50.0
-	//scene.lights.l1.target = -3.0 - 5.0 0.0
 
+	props.SetFromString(objString);
 	return props;
 }
 
@@ -740,9 +729,9 @@ int LuxMaxInternal::Render(
 
 	renderWidth = GetCOREInterface11()->GetRendWidth();
 	renderHeight = GetCOREInterface11()->GetRendHeight();
+	
 
-		RenderConfig *config = new RenderConfig(
-
+	RenderConfig *config = new RenderConfig(
 		//filesaver
 		//Property("renderengine.type")("FILESAVER") <<
 		//Property("filesaver.directory")("C:/tmp/filesaveroutput/") <<
