@@ -360,6 +360,7 @@ Properties exportSpotLight(INode* SpotLight)
 	return props;
 }
 
+
 int LuxMaxInternal::Render(
 	TimeValue t,   			// frame to render.
 	Bitmap *tobm, 			// optional target bitmap
@@ -476,6 +477,30 @@ int LuxMaxInternal::Render(
 					std::wstring replacedObjName = std::wstring(tmpName.begin(), tmpName.end());
 					objName = replacedObjName.c_str();
 
+
+
+					IGameScene * pIgame = GetIGameInterface();
+					
+					if (pIgame->InitialiseIGame(GetCOREInterface()->GetRootNode(),true))
+					{
+						mprintf(L"Info: Initialized Igameh for object : %s\n", currNode->GetName());
+					}
+					
+					//use the ::Mesh to get the 'base class's' mesh class (3dsmax SDK)
+					//If you do not do this then it conflicts with Luxrays's mesh class.
+					::Mesh *p_trimesh = &p_triobj->mesh;
+					p_trimesh->checkNormals(true);
+					p_trimesh->buildNormals();
+					
+					
+					IGameNode *gmNode = pIgame->GetIGameNode(currNode);
+					IGameMesh * gm = (IGameMesh*)gmNode->GetIGameObject();
+					gm->InitializeData();
+//					gm->InitializeData();
+					//gm->InitializeData();
+					int numNorms = gm->GetNumberOfNormals();					
+					mprintf(L"Info: Igame normals: %i\n", numNorms);
+
 					const wchar_t *matName = L"";
 					matName = currNode->GetMtl()->GetName();
 					std::string tmpMatName = ToNarrow(matName);
@@ -483,19 +508,22 @@ int LuxMaxInternal::Render(
 					std::wstring replacedMaterialName = std::wstring(tmpMatName.begin(), tmpMatName.end());
 					matName = replacedMaterialName.c_str();
 
-					//use the ::Mesh to get the 'base class's' mesh class (3dsmax SDK)
-					//If you do not do this then it conflicts with Luxrays's mesh class.
-					::Mesh *p_trimesh = &p_triobj->mesh;
 
-					int numverts = p_trimesh->getNumFaces() * 3;
-					int numfaces = p_trimesh->getNumFaces();
 
-					int faceCount = p_trimesh->getNumFaces();
-					int numUvs = p_trimesh->getNumTVerts();
 
+					//gm->InitializeData();
+					int numverts = gm->GetNumberOfVerts();//p_trimesh->getNumFaces() * 3;
+					mprintf(L"Info: Igame verts: %i\n", numverts);
+					int numfaces = gm->GetNumberOfFaces(); //p_trimesh->getNumFaces();
+					mprintf(L"Info: Igame faces: %i\n", numfaces);
+
+					int faceCount = gm->GetNumberOfFaces(); //p_trimesh->getNumFaces();
+					int numUvs = gm->GetNumberOfTexVerts(); //p_trimesh->getNumTVerts();
+					mprintf(L"Info: Igame uvs: %i\n", numUvs);
+					//Point *p = Scene::AllocVerticesBuffer(numverts);
 					Point *p = Scene::AllocVerticesBuffer(numverts);
 					Triangle *vi = Scene::AllocTrianglesBuffer(numfaces);
-					Normal *n = new Normal[numverts];
+					Normal *n = new Normal[numNorms]; //NumNorms is from igame mesh.
 
 					UV *uv = NULL;
 
@@ -509,57 +537,51 @@ int LuxMaxInternal::Render(
 						}
 					}
 
-					p_trimesh->checkNormals(true);
-					p_trimesh->buildNormals();
 
-					Point3 normal;
-					int counter = 0;
 
-					for (int f = 0; f < p_trimesh->getNumFaces(); ++f)
+
+					//-----------Igame normals
+					gm->SetCreateOptimizedNormalList();
+					
+					for (int i = 0; i< numNorms; i++)
 					{
-						Point3 normal;
-						Face* face = &p_trimesh->faces[f];
-
-						for (int v = 0; v < 3; ++v)
+						Point3 igamen;
+						
+						if (gm->GetNormal(gm->GetNormalVertexIndex(i), igamen, true))
 						{
-							DWORD vi = face->v[v];
 							Point3 normal;
-							if (p_trimesh->getRVertPtr(vi))
-								normal = GetVertexNormal(p_trimesh, f, p_trimesh->getRVertPtr(vi));
-							else
-								normal = Point3(0, 0, 1);
-
-							normal.Normalize();
-							n[counter].x = normal.x;
-							n[counter].y = normal.y;
-							n[counter].z = normal.z;
-
-							counter++;
+							//normal.Normalize();
+							igamen.Normalize();
+							n[gm->GetNormalVertexIndex(i)].x = igamen.x;
+							n[gm->GetNormalVertexIndex(i)].y = igamen.y;
+							n[gm->GetNormalVertexIndex(i)].z = igamen.z;
+							
 						}
-					}
-
-					int vindex = 0;
-					for (int f = 0; f < p_trimesh->getNumFaces(); ++f)
-					{
-						Face* face = &p_trimesh->faces[f];
-						for (int v = 0; v < 3; ++v)
+						else
 						{
-							DWORD vi = face->v[v];
-							Point3 vPos = p_trimesh->verts[vi];
-							p[vindex] = Point(vPos * currNode->GetObjectTM(GetCOREInterface()->GetTime()));
-							vindex += 1;
+							n[gm->GetNormalVertexIndex(i)].x = 0.0f;
+							n[gm->GetNormalVertexIndex(i)].y = 0.0f;
+							n[gm->GetNormalVertexIndex(i)].z = 1.0f;
 						}
+
 					}
 
-					int c = 0;
-
-					for (int i = 0; i < p_trimesh->getNumFaces(); i++)
+					
+					for (int vert = 0; vert < numverts; ++vert)
 					{
-						vi[i] = Triangle(c, c + 1, c + 2);
-						c += 3;
+						Point3 vpos = gm->GetVertex(vert,true);
+						p[vert] = Point(vpos * currNode->GetObjectTM(GetCOREInterface()->GetTime()));
+					}
+					
+					
+					for (int i = 0; i < numfaces; i++)
+					{
+						FaceEx *f;
+						f = gm->GetFace(i);
+						vi[i] = Triangle(f->vert[0], f->vert[1], f->vert[2]);
 					}
 
-					if (p_trimesh->getNumTVerts() < 1) {
+					if (gm->GetNumberOfTexVerts() < 1) {
 						// Define the object - without UV
 						scene->DefineMesh(ToNarrow(objName), numverts, numfaces, p, vi, n, NULL, NULL, NULL);
 					}
@@ -629,11 +651,17 @@ int LuxMaxInternal::Render(
 									{
 										if (texmap1path != "")
 										{
+
+											//scene.textures.tex.type = imagemap
+											//scene.textures.tex.file = scenes / bump / map.png
+											//scene.textures.tex.gain = 0.6
+											//scene.textures.tex.mapping.uvscale = 16 - 16
+
 											::std::string tmpTexStr;
 											::std::string tmpDefinePathstr;
 
 											//we need to get the bitmap size, we pull this from maxscript property
-											scene->DefineImageMap(texmap1Filename, img, 1.f, 3, texwidth, textheight, luxcore::Scene::ChannelSelectionType::DEFAULT);
+											//scene->DefineImageMap(texmap1Filename, img, 1.f, 3, texwidth, textheight, luxcore::Scene::ChannelSelectionType::DEFAULT);
 
 											tmpTexStr.append("scene.textures.");
 											tmpTexStr.append(texmap1Filename);
@@ -703,6 +731,7 @@ int LuxMaxInternal::Render(
 					props.SetFromString(objString);
 
 					scene->Parse(props);
+					gmNode->ReleaseIGameObject();
 				}
 			}
 		}

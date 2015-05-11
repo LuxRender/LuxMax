@@ -98,6 +98,7 @@ static INT_PTR CALLBACK LuxMaxInternalParamDlgProc(
 		
 		CheckDlgButton(hWnd, IDC_CHECK_OPENCL_GPU, BST_UNCHECKED);
 		CheckDlgButton(hWnd, IDC_CHECK_OPENCL_CPU, BST_CHECKED);
+		//CheckDlgButton(hWnd, IDC_OUTPUTSCENE, BST_UNCHECKED);
 
 		break;
 	}
@@ -267,6 +268,7 @@ BOOL LuxMaxInternalParamDlg::FileBrowse() {
 	HWND hWnd = hPanel;
 	static int filterIndex = 1;
 	OPENFILENAME  ofn;
+	
 	TSTR filename;
 	TCHAR fname[512];
 	TCHAR saveDir[1024];
@@ -311,10 +313,10 @@ BOOL LuxMaxInternalParamDlg::FileBrowse() {
 		ofn.lCustData = 0;
 	}
 
-	FixFileExt(ofn, FileEXT); 
-
+	FixFileExt(ofn, FileEXT);
 	while (GetSaveFileName(&ofn))    {
-		FixFileExt(ofn, FileEXT); // add ".vue" if absent
+	//while ((&ofn)){
+	FixFileExt(ofn, FileEXT); // add ".vue" if absent
 
 		workFileName = ofn.lpstrFile;
 		return TRUE;
