@@ -33,7 +33,7 @@
 #include <GraphicsWindow.h>
 #include <IColorCorrectionMgr.h>
 #include <IGame\IGame.h>
-
+#include <VertexNormal.h>
 #include <string>
 #include <string.h>
 #include <iostream>
@@ -288,21 +288,6 @@ Properties exportOmni(INode* Omni)
 		return props;
 }
 
-void spectral_color(float &r, float &g, float &b, float l) // RGB <0,1> <- lambda l <400,700> [nm]
-{
-	double t;  r = 0.0; g = 0.0; b = 0.0;
-	if ((l >= 400.0) && (l<410.0)) { t = (l - 400.0) / (410.0 - 400.0); r = +(0.33*t) - (0.20*t*t); }
-	else if ((l >= 410.0) && (l<475.0)) { t = (l - 410.0) / (475.0 - 410.0); r = 0.14 - (0.13*t*t); }
-	else if ((l >= 545.0) && (l<595.0)) { t = (l - 545.0) / (595.0 - 545.0); r = +(1.98*t) - (t*t); }
-	else if ((l >= 595.0) && (l<650.0)) { t = (l - 595.0) / (650.0 - 595.0); r = 0.98 + (0.06*t) - (0.40*t*t); }
-	else if ((l >= 650.0) && (l<700.0)) { t = (l - 650.0) / (700.0 - 650.0); r = 0.65 - (0.84*t) + (0.20*t*t); }
-	if ((l >= 415.0) && (l<475.0)) { t = (l - 415.0) / (475.0 - 415.0); g = +(0.80*t*t); }
-	else if ((l >= 475.0) && (l<590.0)) { t = (l - 475.0) / (590.0 - 475.0); g = 0.8 + (0.76*t) - (0.80*t*t); }
-	else if ((l >= 585.0) && (l<639.0)) { t = (l - 585.0) / (639.0 - 585.0); g = 0.84 - (0.84*t); }
-	if ((l >= 400.0) && (l<475.0)) { t = (l - 400.0) / (475.0 - 400.0); b = +(2.20*t) - (1.50*t*t); }
-	else if ((l >= 475.0) && (l<560.0)) { t = (l - 475.0) / (560.0 - 475.0); b = 0.7 - (t)+(0.30*t*t); }
-}
-//---------------------------------------------------------------------------
 
 Properties exportSpotLight(INode* SpotLight)
 {
@@ -359,7 +344,6 @@ Properties exportSpotLight(INode* SpotLight)
 	props.SetFromString(objString);
 	return props;
 }
-
 
 int LuxMaxInternal::Render(
 	TimeValue t,   			// frame to render.
@@ -477,8 +461,6 @@ int LuxMaxInternal::Render(
 					std::wstring replacedObjName = std::wstring(tmpName.begin(), tmpName.end());
 					objName = replacedObjName.c_str();
 
-
-
 					IGameScene * pIgame = GetIGameInterface();
 					
 					if (pIgame->InitialiseIGame(GetCOREInterface()->GetRootNode(),true))
@@ -490,14 +472,11 @@ int LuxMaxInternal::Render(
 					//If you do not do this then it conflicts with Luxrays's mesh class.
 					::Mesh *p_trimesh = &p_triobj->mesh;
 					p_trimesh->checkNormals(true);
-					p_trimesh->buildNormals();
-					
-					
+
 					IGameNode *gmNode = pIgame->GetIGameNode(currNode);
 					IGameMesh * gm = (IGameMesh*)gmNode->GetIGameObject();
 					gm->InitializeData();
-//					gm->InitializeData();
-					//gm->InitializeData();
+
 					int numNorms = gm->GetNumberOfNormals();					
 					mprintf(L"Info: Igame normals: %i\n", numNorms);
 
@@ -508,22 +487,17 @@ int LuxMaxInternal::Render(
 					std::wstring replacedMaterialName = std::wstring(tmpMatName.begin(), tmpMatName.end());
 					matName = replacedMaterialName.c_str();
 
-
-
-
-					//gm->InitializeData();
-					int numverts = gm->GetNumberOfVerts();//p_trimesh->getNumFaces() * 3;
+					int numverts = gm->GetNumberOfVerts();
 					mprintf(L"Info: Igame verts: %i\n", numverts);
-					int numfaces = gm->GetNumberOfFaces(); //p_trimesh->getNumFaces();
+					int numfaces = gm->GetNumberOfFaces();
 					mprintf(L"Info: Igame faces: %i\n", numfaces);
 
-					int faceCount = gm->GetNumberOfFaces(); //p_trimesh->getNumFaces();
-					int numUvs = gm->GetNumberOfTexVerts(); //p_trimesh->getNumTVerts();
+					int numUvs = gm->GetNumberOfTexVerts();
 					mprintf(L"Info: Igame uvs: %i\n", numUvs);
-					//Point *p = Scene::AllocVerticesBuffer(numverts);
+					
 					Point *p = Scene::AllocVerticesBuffer(numverts);
 					Triangle *vi = Scene::AllocTrianglesBuffer(numfaces);
-					Normal *n = new Normal[numNorms]; //NumNorms is from igame mesh.
+					Normal *n = new Normal[numNorms];
 
 					UV *uv = NULL;
 
@@ -537,35 +511,24 @@ int LuxMaxInternal::Render(
 						}
 					}
 
-
-
-
-					//-----------Igame normals
-					gm->SetCreateOptimizedNormalList();
-					
+					//Normals (does not work as it should yet).
 					for (int i = 0; i< numNorms; i++)
 					{
 						Point3 igamen;
-						
-						if (gm->GetNormal(gm->GetNormalVertexIndex(i), igamen, true))
+						if (gm->GetNormal(i, igamen))
 						{
-							Point3 normal;
-							//normal.Normalize();
-							igamen.Normalize();
-							n[gm->GetNormalVertexIndex(i)].x = igamen.x;
-							n[gm->GetNormalVertexIndex(i)].y = igamen.y;
-							n[gm->GetNormalVertexIndex(i)].z = igamen.z;
-							
+							igamen = Normalize(igamen);	
+							n[i].x = igamen.x;
+							n[i].y = igamen.y;
+							n[i].z = igamen.z;
 						}
 						else
 						{
-							n[gm->GetNormalVertexIndex(i)].x = 0.0f;
-							n[gm->GetNormalVertexIndex(i)].y = 0.0f;
-							n[gm->GetNormalVertexIndex(i)].z = 1.0f;
+							n[i].x = 0.0f;
+							n[i].y = 0.0f;
+							n[i].z = 0.0f;
 						}
-
 					}
-
 					
 					for (int vert = 0; vert < numverts; ++vert)
 					{
@@ -580,7 +543,7 @@ int LuxMaxInternal::Render(
 						f = gm->GetFace(i);
 						vi[i] = Triangle(f->vert[0], f->vert[1], f->vert[2]);
 					}
-
+					
 					if (gm->GetNumberOfTexVerts() < 1) {
 						// Define the object - without UV
 						scene->DefineMesh(ToNarrow(objName), numverts, numfaces, p, vi, n, NULL, NULL, NULL);
@@ -762,9 +725,9 @@ int LuxMaxInternal::Render(
 
 	RenderConfig *config = new RenderConfig(
 		//filesaver
-		//Property("renderengine.type")("FILESAVER") <<
-		//Property("filesaver.directory")("C:/tmp/filesaveroutput/") <<
-		//Property("filesaver.renderengine.type")("engine") <<
+	//	Property("renderengine.type")("FILESAVER") <<
+	//	Property("filesaver.directory")("C:/tmp/filesaveroutput/") <<
+	//	Property("filesaver.renderengine.type")("engine") <<
 		//Filesaver
 			
 		Property("renderengine.type")("PATHCPU") <<
