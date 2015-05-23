@@ -171,43 +171,6 @@ static void DoRendering(RenderSession *session) {
 	session->GetFilm().Save();
 }
 
-Point3 GetVertexNormal(::Mesh* mesh, int faceNo, RVertex* rv)
-{
-	Face* f = &mesh->faces[faceNo];
-	DWORD smGroup = f->smGroup;
-	int numNormals;
-	Point3 vertexNormal;
-
-	if (rv->rFlags & SPECIFIED_NORMAL)
-	{
-		vertexNormal = rv->rn.getNormal();
-	}
-	else if ((numNormals = rv->rFlags & NORCT_MASK) && smGroup)
-	{
-		if (numNormals == 1)
-		{
-			vertexNormal = rv->rn.getNormal();
-		}
-		else
-		{
-			for (int i = 0; i < numNormals; i++)
-			{
-				if (rv->ern[i].getSmGroup() & smGroup)
-				{
-					vertexNormal = rv->ern[i].getNormal();
-				}
-			}
-		}
-		//#pragma warning(pop)
-	}
-	else
-	{
-		vertexNormal = mesh->getFaceNormal(faceNo);
-		//mprintf(_T("Got face normal instead of vertex normal for face %i\n"), faceNo);
-	}
-
-	return vertexNormal;
-}
 
 std::string ReplaceAll(std::string str, const std::string& from, const std::string& to) {
 	size_t start_pos = 0;
@@ -596,7 +559,6 @@ int LuxMaxInternal::Render(
 		bool doExport = true;
 		switch (os.obj->SuperClassID())
 		{
-			//If we find a helper object - then we skip it (Sky\light helpers for example, target objects etc).
 		case HELPER_CLASS_ID:
 		{
 			doExport = false;
@@ -621,7 +583,6 @@ int LuxMaxInternal::Render(
 			break;
 		}
 
-		//bool foundCamera = false;
 		case CAMERA_CLASS_ID:
 		{
 			::Point3 camTrans = currNode->GetNodeTM(t).GetTrans();
@@ -654,8 +615,6 @@ int LuxMaxInternal::Render(
 			if (doExport)
 			{
 				Object *pObj = currNode->GetObjectRef();
-				IDerivedObject *pDerObj;
-				Modifier *Mod;
 				Matrix3 nodeInitTM;
 				Point4 nodeRotation;
 				TriObject *p_triobj = NULL;
@@ -666,7 +625,6 @@ int LuxMaxInternal::Render(
 				{
 					mprintf(L"Debug: Did not triangulate object : %s\n", currNode->GetName());
 					break;
-					//return false;
 				}
 				else
 				{
@@ -677,28 +635,10 @@ int LuxMaxInternal::Render(
 					std::wstring replacedObjName = std::wstring(tmpName.begin(), tmpName.end());
 					objName = replacedObjName.c_str();
 
-					IGameScene * pIgame = GetIGameInterface();
-
-					if (pIgame->InitialiseIGame(GetCOREInterface()->GetRootNode(), true))
-					{
-						mprintf(L"Info: Initialized Igameh for object : %s\n", currNode->GetName());
-					}
-
-					//use the ::Mesh to get the 'base class's' mesh class (3dsmax SDK)
-					//If you do not do this then it conflicts with Luxrays's mesh class.
 					::Mesh *p_trimesh = &p_triobj->mesh;
 					p_trimesh->checkNormals(true);
-
-					IGameNode *gmNode = pIgame->GetIGameNode(currNode);
-					IGameMesh * gm = (IGameMesh*)gmNode->GetIGameObject();
-
-					//Does not help to trigger these.
-					//gm->SetUseWeightedNormals();
-					//gm->SetCreateOptimizedNormalList();
-
-					gm->InitializeData();
-
-					int numNorms = gm->GetNumberOfNormals();
+					p_trimesh->buildNormals();
+					
 					const wchar_t *matName = L"";
 					matName = currNode->GetMtl()->GetName();
 					std::string tmpMatName = ToNarrow(matName);
@@ -706,13 +646,10 @@ int LuxMaxInternal::Render(
 					std::wstring replacedMaterialName = std::wstring(tmpMatName.begin(), tmpMatName.end());
 					matName = replacedMaterialName.c_str();
 
-					int numverts = gm->GetNumberOfVerts();
-					int numfaces = gm->GetNumberOfFaces();
-					int numUvs = gm->GetNumberOfTexVerts();
+					int numUvs = p_trimesh->getNumTVerts();
 
 					UV *uv = NULL;
 
-					//-------------------------------------------New face code
 					int rawcount = p_trimesh->numFaces * 3;
 					int optcount = 0;
 					vertexPtr rawverts = CollectRawVerts(*p_trimesh, rawcount);
@@ -756,7 +693,7 @@ int LuxMaxInternal::Render(
 					}
 
 					
-					if (gm->GetNumberOfTexVerts() < 1) {
+					if (numUvs < 1) {
 						// Define the object - without UV
 						scene->DefineMesh(ToNarrow(objName), optcount, numTriangles, p, vi, n, NULL, NULL, NULL);
 					}
@@ -856,7 +793,6 @@ int LuxMaxInternal::Render(
 												);
 										}
 									}
-									//mprintf(L"Setting material diffuse RGB: %f %f %f\n", diffcol.x, diffcol.y, diffcol.z);
 
 									if (scene->IsMaterialDefined(ToNarrow(matName)))
 									{
@@ -867,7 +803,6 @@ int LuxMaxInternal::Render(
 
 										if (texmap1path == "")
 										{
-											//tmpMatStr.append(".kd");
 											mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
 											scene->Parse(
 												Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
@@ -909,7 +844,6 @@ int LuxMaxInternal::Render(
 					props.SetFromString(objString);
 
 					scene->Parse(props);
-					gmNode->ReleaseIGameObject();
 				}
 			}
 		}
