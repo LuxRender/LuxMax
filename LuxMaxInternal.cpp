@@ -1,4 +1,4 @@
-/***************************************************************************
+ï»¿/***************************************************************************
 * Copyright 1998-2015 by authors (see AUTHORS.txt)                        *
 *                                                                         *
 *   This file is part of LuxRender.                                       *
@@ -28,6 +28,7 @@
 #include <maxscript\maxscript.h>
 #include <render.h>
 #include <point3.h>
+#include <MeshNormalSpec.h>
 #include <Path.h>
 #include <bitmap.h>
 #include <GraphicsWindow.h>
@@ -232,7 +233,7 @@ std::string removeUnwatedChars(std::string& str)
 	replace(str, ".", "_");
 	replace(str, ",", "_");
 	replace(str, """", "_");
-	replace(str, "¤", "_");
+	replace(str, "ï¿½", "_");
 	replace(str, "%25", "_");
 	replace(str, "&", "_");
 	replace(str, "/", "_");
@@ -244,7 +245,7 @@ std::string removeUnwatedChars(std::string& str)
 	replace(str, "\\", "_");
 	replace(str, "`", "_");
 	replace(str, "^", "_");
-	replace(str, "¨", "_");
+	replace(str, "ï¿½", "_");
 	replace(str, "|", "_");
 	replace(str, "*", "_");
 	replace(str, "'", "_");
@@ -262,32 +263,247 @@ Properties exportOmni(INode* Omni)
 	Properties props;
 	std::string objString;
 
-		objString.append("scene.lights.");
-		objString.append(ToNarrow(Omni->GetName()));
-		objString.append(".type = point");
-		objString.append("\n");
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(Omni->GetName()));
+	objString.append(".type = point");
+	objString.append("\n");
 
-		objString.append("scene.lights.");
-		objString.append(ToNarrow(Omni->GetName()));
-		objString.append(".position = ");
-		objString.append(::to_string(trans.x) + " " + ::to_string(trans.y) + " " + ::to_string(trans.z));
-		objString.append("\n");
-		
-		ObjectState ostate = Omni->EvalWorldState(0);
-		LightObject *light = (LightObject*)ostate.obj;
-		color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
-	
-		objString.append("scene.lights.");
-		objString.append(ToNarrow(Omni->GetName()));
-		objString.append(".color = ");
-		objString.append(::to_string(color.x / 255) + " " + ::to_string(color.y / 255) + " " + ::to_string(color.z / 255));
-		objString.append("\n");
-		props.SetFromString(objString);
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(Omni->GetName()));
+	objString.append(".position = ");
+	objString.append(::to_string(trans.x) + " " + ::to_string(trans.y) + " " + ::to_string(trans.z));
+	objString.append("\n");
 
-		objString = "";
-		return props;
+	ObjectState ostate = Omni->EvalWorldState(0);
+	LightObject *light = (LightObject*)ostate.obj;
+	color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
+
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(Omni->GetName()));
+	objString.append(".color = ");
+	objString.append(::to_string(color.x / 255) + " " + ::to_string(color.y / 255) + " " + ::to_string(color.z / 255));
+	objString.append("\n");
+	props.SetFromString(objString);
+
+	objString = "";
+	return props;
 }
 
+//New code for meshes
+static int hashPoint3(Point3& p) { return (*(int*)&p.x * 73856093) ^ (*(int*)&p.y * 19349663) ^ (*(int*)&p.z * 83492791); }
+
+struct vertex : public MaxHeapOperators
+{
+	static const int hashTable[];
+
+	Point3 p;
+	Point3 n;
+	Point3 uv;
+	int	   mid;
+
+	unsigned int index;
+	int			 hash;
+
+	vertex() : index(0), hash(0) {}
+
+	bool operator==(const vertex& v) const { return hash == v.hash; }
+	bool operator!=(const vertex& v) const { return hash != v.hash; }
+	bool operator>(const vertex& v) const  { return hash > v.hash; }
+	bool operator<(const vertex& v) const  { return hash < v.hash; }
+
+	void hashit()
+	{
+		hash ^= hashPoint3(p) * hashTable[0];
+		hash ^= hashPoint3(n) * hashTable[1];
+		hash ^= hashPoint3(uv) * hashTable[2];
+		hash ^= mid * hashTable[3];
+		hash ^= index * hashTable[4];
+	}
+};
+
+const int vertex::hashTable[] = { 93944371, 36311839, 82895123, 10033109, 59882063, 42133979, 24823181 };
+
+typedef vertex* vertexPtr;
+
+int CompareVertexFn(const void* i, const void* j)
+{
+	if (**(vertexPtr*)i < **(vertexPtr*)j)
+		return -1;
+	if (**(vertexPtr*)i > **(vertexPtr*)j)
+		return 1;
+	return 0;
+}
+
+void GetFaceRNormals(::Mesh& mesh, int fi, Point3* normals)
+{
+	Face& face = mesh.faces[fi];
+	DWORD fsmg = face.getSmGroup();
+	if (fsmg == 0)
+	{
+		normals[0] = normals[1] = normals[2] = mesh.getFaceNormal(fi);
+		return;
+	}
+	MtlID fmtl = face.getMatID();
+	DWORD* fverts = face.getAllVerts();
+	for (int v = 0; v < 3; ++v)
+	{
+		RVertex& rvert = mesh.getRVert(fverts[v]);
+		int numNormals = (int)(rvert.rFlags & NORCT_MASK);
+
+		if (numNormals == 1)
+			normals[v] = rvert.rn.getNormal();
+		else
+		{
+			for (int n = 0; n < numNormals; ++n)
+			{
+				RNormal& rn = rvert.ern[n];
+				if ((fsmg & rn.getSmGroup()) && fmtl == rn.getMtlIndex())
+				{
+					normals[v] = rn.getNormal();
+					break;
+				}
+			}
+		}
+	}
+}
+
+vertexPtr CollectRawVerts(::Mesh& mesh, int rawcount)
+{
+	int numfaces = mesh.numFaces;
+	vertexPtr rawverts = new vertex[rawcount];
+	if (!rawverts) return NULL;
+
+	mesh.checkNormals(TRUE);
+	Face* faces = mesh.faces;
+	Point3* verts = mesh.verts;
+	TVFace* tvfaces = mesh.tvFace;
+	Point3* uvverts = mesh.tVerts;
+
+	for (int f = 0, i = 0; f < numfaces; ++f, ++faces, ++tvfaces)
+	{
+		Point3 fnormals[3];
+		GetFaceRNormals(mesh, f, fnormals);
+		short mid = faces->getMatID();
+		for (int v = 0; v < 3; ++v)
+		{
+			vertex& rv = rawverts[i++];
+			rv.index = faces->v[v];
+			rv.p = verts[faces->v[v]];
+			rv.n = fnormals[v];
+			rv.uv = uvverts[tvfaces->t[v]];
+			rv.mid = mid;
+			rv.hashit();
+		}
+	}
+	return rawverts;
+}
+
+vertexPtr CreateOptimizeVertexList(vertexPtr rawverts, int numverts, int& numoutverts)
+{
+	vertexPtr* vptrs = new vertexPtr[numverts];
+
+	vertexPtr vptr = rawverts;
+	for (int i = 0; i < numverts; ++i, ++vptr)
+		vptrs[i] = vptr;
+
+	qsort(vptrs, numverts, sizeof(vertexPtr), CompareVertexFn);
+
+	int* copylist = new int[numverts];
+	unsigned int cc = 0, ri = 0;
+	copylist[cc] = vptrs[ri] - rawverts;
+	while (++ri < numverts)
+	{
+		int index = vptrs[ri] - rawverts;
+		if (rawverts[copylist[cc]] != rawverts[index])
+			copylist[++cc] = index;
+	}
+	numoutverts = cc + 1;
+	vertexPtr optverts = new vertex[numoutverts];
+
+	for (int i = 0; i < numoutverts; ++i)
+		optverts[i] = rawverts[copylist[i]];
+
+	delete[] copylist;
+	delete[] vptrs;
+	return optverts;
+}
+
+unsigned int* CreateOptimizeFaceIndices(vertexPtr raw, int rawcount, vertexPtr opt, int optcount)
+{
+	vertexPtr* vptrs = new vertexPtr[optcount];
+	unsigned int* faces = new unsigned int[rawcount];
+
+	vertexPtr vptr = opt;
+	for (int i = 0; i < optcount; ++i, ++vptr)
+		vptrs[i] = vptr;
+
+	qsort(vptrs, optcount, sizeof(vertexPtr), CompareVertexFn);
+
+	for (int i = 0; i < rawcount; ++i)
+	{
+		vertexPtr key = &raw[i];
+
+		// find the correct index of a raw vert in the optimized array
+
+		vertexPtr* result = (vertexPtr*)bsearch(&key, vptrs, optcount, sizeof(vertexPtr), CompareVertexFn);
+		if (result)
+		{
+			faces[i] = *result - opt; // why derefence vertexPtr to get index?
+		}
+		else
+		{
+			mprintf(_T("\nError getting the face index for index: %i \n"), i);
+		}
+	}
+
+	delete[] vptrs;
+	return faces;
+}
+
+void BuildMesh(::Mesh& mesh, vertexPtr verts, int nverts, unsigned int* faces, int nfaces)
+{
+	mesh.setNumVerts(nverts);
+	mesh.setNumFaces(nfaces);
+	mesh.setNumTVerts(nverts);
+	mesh.setNumTVFaces(nfaces);
+
+	::MeshNormalSpec* nspec = new ::MeshNormalSpec;
+	nspec->SetNumFaces(nfaces);
+	nspec->SetNumNormals(nverts);
+
+	for (int v = 0; v < nverts; ++v)
+	{
+		mesh.setVert(v, verts[v].p);
+		mesh.setTVert(v, verts[v].uv);
+		nspec->Normal(v) = verts[v].n;
+	}
+	int fi = 0;
+	for (int f = 0; f < nfaces * 3; f += 3)
+	{
+		int a = faces[f];
+		int b = faces[f + 1];
+		int c = faces[f + 2];
+		mesh.faces[fi].setVerts(a, b, c);
+		mesh.tvFace[fi].setTVerts(a, b, c);
+		mesh.faces[fi].setEdgeVisFlags(1, 1, 1);
+		mesh.faces[fi].setMatID(verts[a].mid);
+		nspec->Face(fi).SetNormalID(0, a);
+		nspec->Face(fi).SetNormalID(1, b);
+		nspec->Face(fi).SetNormalID(2, c);
+		fi++;
+	}
+	nspec->MakeNormalsExplicit(false);
+
+	MeshNormalSpec *meshNormals = (MeshNormalSpec *)mesh.GetInterface(MESH_NORMAL_SPEC_INTERFACE);
+	if (meshNormals)
+	{
+		*meshNormals = *nspec;
+		meshNormals->SetParent(&mesh);
+	}
+	delete nspec;
+}
+
+//new code for meshes
 
 Properties exportSpotLight(INode* SpotLight)
 {
@@ -295,10 +511,10 @@ Properties exportSpotLight(INode* SpotLight)
 	std::string objString;
 	::Point3 trans = SpotLight->GetNodeTM(GetCOREInterface11()->GetTime()).GetTrans();
 	::Matrix3 targetPos;
-	
+
 	ObjectState os = SpotLight->EvalWorldState(GetCOREInterface()->GetTime());
 	LightObject *light = (LightObject*)os.obj;
-	
+
 	::Point3 color;
 	color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
 
@@ -365,7 +581,7 @@ int LuxMaxInternal::Render(
 	mprintf(_T("\nRendering Frame: %i \n"), frameNum);
 
 	Scene *scene = new Scene();
-	
+
 	//Export all meshes
 	INode* maxscene = GetCOREInterface7()->GetRootNode();
 	for (int a = 0; maxscene->NumChildren() > a; a++)
@@ -462,12 +678,12 @@ int LuxMaxInternal::Render(
 					objName = replacedObjName.c_str();
 
 					IGameScene * pIgame = GetIGameInterface();
-					
-					if (pIgame->InitialiseIGame(GetCOREInterface()->GetRootNode(),true))
+
+					if (pIgame->InitialiseIGame(GetCOREInterface()->GetRootNode(), true))
 					{
 						mprintf(L"Info: Initialized Igameh for object : %s\n", currNode->GetName());
 					}
-					
+
 					//use the ::Mesh to get the 'base class's' mesh class (3dsmax SDK)
 					//If you do not do this then it conflicts with Luxrays's mesh class.
 					::Mesh *p_trimesh = &p_triobj->mesh;
@@ -475,11 +691,14 @@ int LuxMaxInternal::Render(
 
 					IGameNode *gmNode = pIgame->GetIGameNode(currNode);
 					IGameMesh * gm = (IGameMesh*)gmNode->GetIGameObject();
+
+					//Does not help to trigger these.
+					//gm->SetUseWeightedNormals();
+					//gm->SetCreateOptimizedNormalList();
+
 					gm->InitializeData();
 
-					int numNorms = gm->GetNumberOfNormals();					
-					mprintf(L"Info: Igame normals: %i\n", numNorms);
-
+					int numNorms = gm->GetNumberOfNormals();
 					const wchar_t *matName = L"";
 					matName = currNode->GetMtl()->GetName();
 					std::string tmpMatName = ToNarrow(matName);
@@ -488,18 +707,43 @@ int LuxMaxInternal::Render(
 					matName = replacedMaterialName.c_str();
 
 					int numverts = gm->GetNumberOfVerts();
-					mprintf(L"Info: Igame verts: %i\n", numverts);
 					int numfaces = gm->GetNumberOfFaces();
-					mprintf(L"Info: Igame faces: %i\n", numfaces);
-
 					int numUvs = gm->GetNumberOfTexVerts();
-					mprintf(L"Info: Igame uvs: %i\n", numUvs);
-					
-					Point *p = Scene::AllocVerticesBuffer(numverts);
-					Triangle *vi = Scene::AllocTrianglesBuffer(numfaces);
-					Normal *n = new Normal[numNorms];
 
 					UV *uv = NULL;
+
+					//-------------------------------------------New face code
+					int rawcount = p_trimesh->numFaces * 3;
+					int optcount = 0;
+					vertexPtr rawverts = CollectRawVerts(*p_trimesh, rawcount);
+					vertexPtr optverts = CreateOptimizeVertexList(rawverts, rawcount, optcount);
+					unsigned int* indices = CreateOptimizeFaceIndices(rawverts, rawcount, optverts, optcount);
+					int numTriangles = p_trimesh->getNumFaces();
+
+					Point *p = Scene::AllocVerticesBuffer(optcount);
+					Triangle *vi = Scene::AllocTrianglesBuffer(numTriangles);
+					Normal *n = new Normal[optcount];
+
+					for (int vert = 0; vert < optcount; vert++)
+					{
+						p[vert] = Point(optverts[vert].p * currNode->GetObjectTM(GetCOREInterface()->GetTime()));
+					}
+
+					for (int norm = 0; norm < optcount; norm++)
+					{
+						::Point3 tmpNorm = optverts[norm].n * currNode->GetObjectTM(GetCOREInterface()->GetTime());
+						n[norm].x = tmpNorm.x;
+						n[norm].y = tmpNorm.y;
+						n[norm].z = tmpNorm.z;
+					}
+
+					for (int i = 0, fi = 0; fi < numTriangles; i += 3, ++fi)
+					{
+						vi[fi] = Triangle(
+							int(indices[i]),
+							int(indices[i + 1]),
+							int(indices[i + 2]));
+					}
 
 					if (numUvs > 0)
 					{
@@ -511,48 +755,20 @@ int LuxMaxInternal::Render(
 						}
 					}
 
-					//Normals (does not work as it should yet).
-					for (int i = 0; i< numNorms; i++)
-					{
-						Point3 igamen;
-						if (gm->GetNormal(i, igamen))
-						{
-							igamen = Normalize(igamen);	
-							n[i].x = igamen.x;
-							n[i].y = igamen.y;
-							n[i].z = igamen.z;
-						}
-						else
-						{
-							n[i].x = 0.0f;
-							n[i].y = 0.0f;
-							n[i].z = 0.0f;
-						}
-					}
-					
-					for (int vert = 0; vert < numverts; ++vert)
-					{
-						Point3 vpos = gm->GetVertex(vert,true);
-						p[vert] = Point(vpos * currNode->GetObjectTM(GetCOREInterface()->GetTime()));
-					}
-					
-					
-					for (int i = 0; i < numfaces; i++)
-					{
-						FaceEx *f;
-						f = gm->GetFace(i);
-						vi[i] = Triangle(f->vert[0], f->vert[1], f->vert[2]);
-					}
 					
 					if (gm->GetNumberOfTexVerts() < 1) {
 						// Define the object - without UV
-						scene->DefineMesh(ToNarrow(objName), numverts, numfaces, p, vi, n, NULL, NULL, NULL);
+						scene->DefineMesh(ToNarrow(objName), optcount, numTriangles, p, vi, n, NULL, NULL, NULL);
 					}
 					else
 					{
 						// Define the object - with UV
-						scene->DefineMesh(ToNarrow(objName), numverts, numfaces, p, vi, n, uv, NULL, NULL);
+						scene->DefineMesh(ToNarrow(objName), optcount, numTriangles, p, vi, n, NULL, NULL, NULL);
 					}
+
+					delete[] rawverts;
+					delete[] optverts;
+					delete[] indices;
 
 					p = NULL;
 					vi = NULL;
@@ -600,7 +816,7 @@ int LuxMaxInternal::Render(
 									::std::string texmap1Filename;
 									int texwidth;
 									int textheight;
-
+									
 									diffcol = pBlock->GetPoint3(0, GetCOREInterface()->GetTime(), 0);
 									texmap1path = getstring((pBlock->GetStr(2, GetCOREInterface()->GetTime(), 0)));
 									texmap1Filename = getstring(pBlock->GetStr(3, GetCOREInterface()->GetTime(), 0));
@@ -614,7 +830,6 @@ int LuxMaxInternal::Render(
 									{
 										if (texmap1path != "")
 										{
-
 											//scene.textures.tex.type = imagemap
 											//scene.textures.tex.file = scenes / bump / map.png
 											//scene.textures.tex.gain = 0.6
@@ -721,17 +936,16 @@ int LuxMaxInternal::Render(
 
 	renderWidth = GetCOREInterface11()->GetRendWidth();
 	renderHeight = GetCOREInterface11()->GetRendHeight();
-	
 
 	RenderConfig *config = new RenderConfig(
 		//filesaver
-	//	Property("renderengine.type")("FILESAVER") <<
-	//	Property("filesaver.directory")("C:/tmp/filesaveroutput/") <<
-	//	Property("filesaver.renderengine.type")("engine") <<
+		//Property("renderengine.type")("FILESAVER") <<
+		//Property("filesaver.directory")("C:/tmp/filesaveroutput/") <<
+		//Property("filesaver.renderengine.type")("engine") <<
 		//Filesaver
-			
+
 		Property("renderengine.type")("PATHCPU") <<
-	    Property("sampler.type")("RANDOM") <<
+		Property("sampler.type")("RANDOM") <<
 		Property("opencl.platform.index")(-1) <<
 		Property("opencl.cpu.use")(false) <<
 		Property("opencl.gpu.use")(true) <<
