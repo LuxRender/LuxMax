@@ -21,6 +21,7 @@
 #define LR_INTERNAL_MATTE_CLASSID Class_ID(334255,416532)
 #define OMNI_CLASSID Class_ID(4113, 0)
 #define SPOTLIGHT_CLASSID Class_ID(4114,0)
+#define STANDARDMATERIAL_CLASSID Class_ID(2,0)
 
 #include "LuxMaxInternalpch.h"
 #include "resource.h"
@@ -170,7 +171,6 @@ static void DoRendering(RenderSession *session) {
 	session->GetFilm().GetOutput(session->GetFilm().OUTPUT_RGB_TONEMAPPED, pixels, 0);
 	session->GetFilm().Save();
 }
-
 
 std::string ReplaceAll(std::string str, const std::string& from, const std::string& to) {
 	size_t start_pos = 0;
@@ -466,8 +466,42 @@ void BuildMesh(::Mesh& mesh, vertexPtr verts, int nverts, unsigned int* faces, i
 	delete nspec;
 }
 
-//new code for meshes
+bool isSupportedMaterial(::Mtl* mat)
+{
+	if (mat->ClassID() == LR_INTERNAL_MATTE_CLASSID)
+	{
+		return true;
+	}
+	if (mat->ClassID() == STANDARDMATERIAL_CLASSID)
+	{
+		return true;
+	}
+	
+	return false;
+}
 
+::Point3 getMaterialDiffuseColor(::Mtl* mat)
+{
+	std::string objString;
+	::Point3 diffcolor;
+
+	if (mat->ClassID() == LR_INTERNAL_MATTE_CLASSID)
+	{
+		for (int i = 0, count = mat->NumParamBlocks(); i < count; ++i)
+		{
+			IParamBlock2 *pBlock = mat->GetParamBlock(i);
+			diffcolor = pBlock->GetPoint3(0, GetCOREInterface()->GetTime(), 0);
+		}
+	}
+	if (mat->ClassID() == STANDARDMATERIAL_CLASSID)
+	{
+		diffcolor = mat->GetDiffuse(0);
+	}
+
+	return diffcolor;
+}
+
+//new code for meshes
 Properties exportSpotLight(INode* SpotLight)
 {
 	Properties props;
@@ -523,6 +557,8 @@ Properties exportSpotLight(INode* SpotLight)
 	props.SetFromString(objString);
 	return props;
 }
+
+
 
 int LuxMaxInternal::Render(
 	TimeValue t,   			// frame to render.
@@ -638,7 +674,7 @@ int LuxMaxInternal::Render(
 					::Mesh *p_trimesh = &p_triobj->mesh;
 					p_trimesh->checkNormals(true);
 					p_trimesh->buildNormals();
-					
+
 					const wchar_t *matName = L"";
 					matName = currNode->GetMtl()->GetName();
 					std::string tmpMatName = ToNarrow(matName);
@@ -692,7 +728,6 @@ int LuxMaxInternal::Render(
 						}
 					}
 
-					
 					if (numUvs < 1) {
 						// Define the object - without UV
 						scene->DefineMesh(ToNarrow(objName), optcount, numTriangles, p, vi, n, NULL, NULL, NULL);
@@ -725,125 +760,84 @@ int LuxMaxInternal::Render(
 
 					Mtl *objmat = NULL;
 					objmat = currNode->GetMtl();
+					//if (!scene->IsMaterialDefined(ToNarrow(matName)))
+					//{
 					if (objmat != NULL)
 					{
 						int numsubs = 0;
 						numsubs = objmat->NumSubMtls();
-
+						if (numsubs < 1)
+						{
+							numsubs = 1;
+						}
 						for (int f = 0; f < numsubs; ++f)
 						{
-							if (objmat->ClassID() == LR_INTERNAL_MATTE_CLASSID)
-							{
-								objString.append("scene.materials.");
-								objString.append(ToNarrow(matName));
-								objString.append(".type");
+							//OutputDebugStringW(objmat->GetFullName());
+							if (isSupportedMaterial(objmat))
+							{ 
+								//if ((objmat->ClassID() == LR_INTERNAL_MATTE_CLASSID))
+								//{
+									objString.append("scene.materials.");
+									objString.append(ToNarrow(matName));
+									objString.append(".type");
 
-								scene->Parse(
-									Property(objString)("matte") <<
-									Property("")("")
-									);
-								objString = "";
-
-								for (int i = 0, count = objmat->NumParamBlocks(); i < count; ++i)
-								{
-									IParamBlock2 *pBlock = objmat->GetParamBlock(i);
+									scene->Parse(
+										Property(objString)("matte") <<
+										Property("")("")
+										);
+									objString = "";
 
 									::Point3 diffcol;
-									::std::string texmap1path;
-									::std::string texmap1Filename;
-									int texwidth;
-									int textheight;
-									
-									diffcol = pBlock->GetPoint3(0, GetCOREInterface()->GetTime(), 0);
-									texmap1path = getstring((pBlock->GetStr(2, GetCOREInterface()->GetTime(), 0)));
-									texmap1Filename = getstring(pBlock->GetStr(3, GetCOREInterface()->GetTime(), 0));
-									texwidth = pBlock->GetInt(4, GetCOREInterface()->GetTime(), 0);
-									textheight = pBlock->GetInt(5, GetCOREInterface()->GetTime(), 0);
+									diffcol = getMaterialDiffuseColor(objmat);
 
-									const u_int size = texwidth + textheight;
-									float *img = new float[size * size * 3];
-
-									if (!scene->IsTextureDefined(texmap1Filename))
-									{
-										if (texmap1path != "")
-										{
-											//scene.textures.tex.type = imagemap
-											//scene.textures.tex.file = scenes / bump / map.png
-											//scene.textures.tex.gain = 0.6
-											//scene.textures.tex.mapping.uvscale = 16 - 16
-
-											::std::string tmpTexStr;
-											::std::string tmpDefinePathstr;
-
-											//we need to get the bitmap size, we pull this from maxscript property
-											//scene->DefineImageMap(texmap1Filename, img, 1.f, 3, texwidth, textheight, luxcore::Scene::ChannelSelectionType::DEFAULT);
-
-											tmpTexStr.append("scene.textures.");
-											tmpTexStr.append(texmap1Filename);
-											tmpTexStr.append(".type");
-
-											tmpDefinePathstr.append("scene.textures.");
-											tmpDefinePathstr.append(texmap1Filename);
-											tmpDefinePathstr.append(".file");
-
-											scene->Parse(
-												Property(tmpTexStr)("imagemap") <<
-												Property(tmpDefinePathstr)(texmap1path) <<
-												Property("")("")
-												);
-										}
-									}
-
-									if (scene->IsMaterialDefined(ToNarrow(matName)))
-									{
-										::std::string tmpMatStr;
-										tmpMatStr.append("scene.materials.");
-										tmpMatStr.append(ToNarrow(matName));
-										tmpMatStr.append(".kd");
-
-										if (texmap1path == "")
-										{
-											mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
-											scene->Parse(
-												Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
-												Property("")("")
-
-												);
-										}
-										else
-										{
-											mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
-											scene->Parse(
-												Property(tmpMatStr)(texmap1Filename) <<
-												Property("")("")
-
-												);
-										}
-
-										tmpMatStr = "";
-									}
-									//scene->Parse(
-									//										Property("scene.materials.tmpMat.type")("matte") <<
-									//									Property("scene.materials.tmpMat.kd")(float(diffcol.x), float(diffcol.y), float(diffcol.z))
-									//								);
-								}
+									::std::string tmpMatStr;
+									tmpMatStr.append("scene.materials.");
+									tmpMatStr.append(ToNarrow(matName));
+									tmpMatStr.append(".kd");
+									//mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
+									scene->Parse(
+										Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
+										Property("")("")
+										);
+									tmpMatStr = "";
+								//}
 							}
+							//else
+							//{
+							//	objString.append("scene.materials.");
+							//	objString.append(ToNarrow(matName));
+							//	objString.append(".type");
 
-							if (objmat->ClassID() == LUXCORE_MATTE_CLASSID)
-							{
-								//skip it - not supported.
-							}
+							//	scene->Parse(
+							//		Property(objString)("matte") <<
+							//		Property("")("")
+							//		);
+							//	objString = "";
+
+							//	::std::string tmpMatStr;
+							//	tmpMatStr.append("scene.materials.");
+							//	tmpMatStr.append(ToNarrow(matName));
+							//	tmpMatStr.append(".kd");
+							//	mprintf(L"Creating fallback material for unsupported material: %s\n", matName);
+							//	scene->Parse(
+							//		Property(tmpMatStr)(float(125), float(125), float(125)) <<
+							//		Property("")("")
+							//		);
+							//	tmpMatStr = "";
+
+							//}
 						}
+						//	}
+
+						objString = "";
+						objString.append("scene.objects.");
+						objString.append(ToNarrow(objName));
+						objString.append(".material = ");
+						objString.append(ToNarrow(matName));
+						props.SetFromString(objString);
+
+						scene->Parse(props);
 					}
-
-					objString = "";
-					objString.append("scene.objects.");
-					objString.append(ToNarrow(objName));
-					objString.append(".material = ");
-					objString.append(ToNarrow(matName));
-					props.SetFromString(objString);
-
-					scene->Parse(props);
 				}
 			}
 		}
