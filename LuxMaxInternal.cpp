@@ -802,30 +802,30 @@ int LuxMaxInternal::Render(
 									tmpMatStr = "";
 								//}
 							}
-							//else
-							//{
-							//	objString.append("scene.materials.");
-							//	objString.append(ToNarrow(matName));
-							//	objString.append(".type");
+							else
+							{
+								objString.append("scene.materials.");
+								objString.append(ToNarrow(matName));
+								objString.append(".type");
 
-							//	scene->Parse(
-							//		Property(objString)("matte") <<
-							//		Property("")("")
-							//		);
-							//	objString = "";
+								scene->Parse(
+									Property(objString)("matte") <<
+									Property("")("")
+									);
+								objString = "";
 
-							//	::std::string tmpMatStr;
-							//	tmpMatStr.append("scene.materials.");
-							//	tmpMatStr.append(ToNarrow(matName));
-							//	tmpMatStr.append(".kd");
-							//	mprintf(L"Creating fallback material for unsupported material: %s\n", matName);
-							//	scene->Parse(
-							//		Property(tmpMatStr)(float(125), float(125), float(125)) <<
-							//		Property("")("")
-							//		);
-							//	tmpMatStr = "";
+								::std::string tmpMatStr;
+								tmpMatStr.append("scene.materials.");
+								tmpMatStr.append(ToNarrow(matName));
+								tmpMatStr.append(".kd");
+								mprintf(L"Creating fallback material for unsupported material: %s\n", matName);
+								scene->Parse(
+									Property(tmpMatStr)(float(0.5), float(0.5), float(0.5)) <<
+									Property("")("")
+									);
+								tmpMatStr = "";
 
-							//}
+							}
 						}
 						//	}
 
