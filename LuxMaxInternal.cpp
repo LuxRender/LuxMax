@@ -624,8 +624,7 @@ int LuxMaxInternal::Render(
 			//::Point3 camTrans = currNode->GetNodeTM(t).GetTrans();
 			CameraObject*   cameraPtr = (CameraObject *)os.obj;
 			INode* camNode = GetCOREInterface9()->GetActiveViewExp().GetViewCamera();
-			::Point3 camTrans = camNode->GetNodeTM(GetCOREInterface()->GetTime()).GetTrans();
-
+			
 			if (camNode == NULL)
 			{
 				MessageBox(0, L"Set active view to a target camera and render again.", L"Error!", MB_OK);
@@ -633,18 +632,21 @@ int LuxMaxInternal::Render(
 				break;
 			}
 			else
+			{
+				::Point3 camTrans = camNode->GetNodeTM(GetCOREInterface()->GetTime()).GetTrans();
+				Interface* g_ip = GetCOREInterface();
+				INode* NewCam = camNode;
+				::Matrix3 targetPos;
+				NewCam->GetTargetTM(t, targetPos);
 
-			Interface* g_ip = GetCOREInterface();
-			INode* NewCam = camNode;
-			::Matrix3 targetPos;
-			NewCam->GetTargetTM(t, targetPos);
-			
-			mprintf(L"Rendering with camera: : %s\n", camNode->GetName());
-			scene->Parse(
-				Property("scene.camera.lookat.orig")(camTrans.x, camTrans.y, camTrans.z) <<
-				Property("scene.camera.lookat.target")(targetPos.GetTrans().x, targetPos.GetTrans().y, targetPos.GetTrans().z) <<
-				Property("scene.camera.fieldofview")(cameraPtr->GetFOV(t, FOREVER) * 180 / pi)
-				);
+				mprintf(L"Rendering with camera: : %s\n", camNode->GetName());
+				scene->Parse(
+					Property("scene.camera.lookat.orig")(camTrans.x, camTrans.y, camTrans.z) <<
+					Property("scene.camera.lookat.target")(targetPos.GetTrans().x, targetPos.GetTrans().y, targetPos.GetTrans().z) <<
+					Property("scene.camera.fieldofview")(cameraPtr->GetFOV(t, FOREVER) * 180 / pi)
+					);
+				break;
+			}
 			break;
 		}
 
