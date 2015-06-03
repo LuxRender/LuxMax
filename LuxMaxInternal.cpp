@@ -621,9 +621,10 @@ int LuxMaxInternal::Render(
 
 		case CAMERA_CLASS_ID:
 		{
-			::Point3 camTrans = currNode->GetNodeTM(t).GetTrans();
+			//::Point3 camTrans = currNode->GetNodeTM(t).GetTrans();
 			CameraObject*   cameraPtr = (CameraObject *)os.obj;
 			INode* camNode = GetCOREInterface9()->GetActiveViewExp().GetViewCamera();
+			::Point3 camTrans = camNode->GetNodeTM(GetCOREInterface()->GetTime()).GetTrans();
 
 			if (camNode == NULL)
 			{
@@ -633,10 +634,11 @@ int LuxMaxInternal::Render(
 			}
 			else
 
-				Interface* g_ip = GetCOREInterface();
+			Interface* g_ip = GetCOREInterface();
 			INode* NewCam = camNode;
 			::Matrix3 targetPos;
 			NewCam->GetTargetTM(t, targetPos);
+			
 			mprintf(L"Rendering with camera: : %s\n", camNode->GetName());
 			scene->Parse(
 				Property("scene.camera.lookat.orig")(camTrans.x, camTrans.y, camTrans.z) <<
@@ -789,7 +791,6 @@ int LuxMaxInternal::Render(
 
 									::Point3 diffcol;
 									diffcol = getMaterialDiffuseColor(objmat);
-
 									::std::string tmpMatStr;
 									tmpMatStr.append("scene.materials.");
 									tmpMatStr.append(ToNarrow(matName));
