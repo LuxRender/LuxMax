@@ -22,6 +22,7 @@
 #define OMNI_CLASSID Class_ID(4113, 0)
 #define SPOTLIGHT_CLASSID Class_ID(4114,0)
 #define STANDARDMATERIAL_CLASSID Class_ID(2,0)
+#define ARCHITECTURAL_CLASSID Class_ID(332471230,1763586103)
 
 #include "LuxMaxInternalpch.h"
 #include "resource.h"
@@ -65,6 +66,11 @@ float* pixels;
 
 int renderWidth = 0;
 int renderHeight = 0;
+
+Scene *scene;
+
+::Point3 getMaterialDiffuseColor(::Mtl* mat);
+void exportMaterial(::Mtl* mat);
 
 std::string ToNarrow(const wchar_t *s, char dfault = '?',
 	const std::locale& loc = std::locale())
@@ -476,8 +482,118 @@ bool isSupportedMaterial(::Mtl* mat)
 	{
 		return true;
 	}
+	if (mat->ClassID() == ARCHITECTURAL_CLASSID)
+	{
+		return true;
+	}
 	
 	return false;
+}
+
+void exportMaterial(::Mtl* mat)
+{
+
+	const wchar_t *matName = L"";
+	matName = mat->GetName();
+	std::string tmpMatName = ToNarrow(matName);
+	removeUnwatedChars(tmpMatName);
+	std::wstring replacedMaterialName = std::wstring(tmpMatName.begin(), tmpMatName.end());
+	matName = replacedMaterialName.c_str();
+
+	//if (scene->IsMaterialDefined(ToNarrow(matName)) == false)
+	//{
+		std::string objString = "";
+		objString.append("scene.materials.");
+		objString.append(ToNarrow(matName));
+		std::string currmat = objString;
+
+		objString.append(".type");
+
+		if (mat->ClassID() == ARCHITECTURAL_CLASSID)
+		{
+			const wchar_t *matType = L"";
+
+			for (int i = 0, count = mat->NumParamBlocks(); i < count; ++i)
+			{
+				IParamBlock2 *pBlock = mat->GetParamBlock(i);
+				matType = pBlock->GetStr(0, GetCOREInterface()->GetTime(), 0);
+				//OutputDebugStringW(L"\nCreating matType material: %s\n",matType);
+				OutputDebugStringW(matType);
+			}
+			OutputDebugStringW(matType);
+			//((getstring(matType) == "Glass - Translucent") || 
+			if ((getstring(matType) == "Metal - Brushed"))
+			{
+				//metal2
+				OutputDebugStringW(_T("\nCreating Metal2 material.\n"));
+				scene->Parse(
+					Property(objString)("metal2") <<
+					Property("")("")
+					);
+			}
+		
+			//Glass - Clear
+			else if ((getstring(matType) == "Glass - Translucent"))
+			{
+				OutputDebugStringW(_T("\nCreating Glass - clear material.\n"));
+				//Create glass
+				scene->Parse(
+					Property(objString)("glass") <<
+					Property("")("")
+					);
+
+				scene->Parse(
+					Property(currmat + ".ioroutside")(1.5) <<
+					Property("")("")
+					);
+
+				scene->Parse(
+					Property(currmat + ".iorinside")(1.0) <<
+					Property("")("")
+					);
+			}
+			else if ((getstring(matType) == "Mirror"))
+			{
+				//metal2
+				OutputDebugStringW(_T("\nCreating Mirror material.\n"));
+				scene->Parse(
+					Property(objString)("mirror") <<
+					Property("")("")
+					);
+			}
+			else
+			{
+				OutputDebugStringW(_T("\nCreating fallback architectural material for unsupported template.\n"));
+				scene->Parse(
+					Property(objString)("matte") <<
+					Property("")("")
+					);
+			}
+
+		}
+		else //Parse as matte material.
+		{
+			OutputDebugStringW(_T("\nCreating fallback material.\n"));
+			scene->Parse(
+				Property(objString)("matte") <<
+				Property("")("")
+				);
+			objString = "";
+
+			::Point3 diffcol;
+			diffcol = getMaterialDiffuseColor(mat);
+			::std::string tmpMatStr;
+			tmpMatStr.append("scene.materials.");
+			tmpMatStr.append(ToNarrow(matName));
+			tmpMatStr.append(".kd");
+			//mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
+			scene->Parse(
+				Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
+				Property("")("")
+				);
+			tmpMatStr = "";
+		}
+	//}
 }
 
 ::Point3 getMaterialDiffuseColor(::Mtl* mat)
@@ -493,10 +609,11 @@ bool isSupportedMaterial(::Mtl* mat)
 			diffcolor = pBlock->GetPoint3(0, GetCOREInterface()->GetTime(), 0);
 		}
 	}
-	if (mat->ClassID() == STANDARDMATERIAL_CLASSID)
+	if (mat->ClassID() == STANDARDMATERIAL_CLASSID || mat->ClassID() == ARCHITECTURAL_CLASSID)
 	{
 		diffcolor = mat->GetDiffuse(0);
 	}
+	
 
 	return diffcolor;
 }
@@ -579,7 +696,8 @@ int LuxMaxInternal::Render(
 	int frameNum = t / GetTicksPerFrame();
 	mprintf(_T("\nRendering Frame: %i \n"), frameNum);
 
-	Scene *scene = new Scene();
+	//Scene *scene = new Scene();
+	scene = new Scene();
 
 	//Export all meshes
 	INode* maxscene = GetCOREInterface7()->GetRootNode();
@@ -708,7 +826,7 @@ int LuxMaxInternal::Render(
 
 					for (int norm = 0; norm < optcount; norm++)
 					{
-						::Point3 tmpNorm = optverts[norm].n * currNode->GetObjectTM(GetCOREInterface()->GetTime());
+						::Point3 tmpNorm = optverts[norm].n;
 						n[norm].x = tmpNorm.x;
 						n[norm].y = tmpNorm.y;
 						n[norm].z = tmpNorm.z;
@@ -779,9 +897,15 @@ int LuxMaxInternal::Render(
 							//OutputDebugStringW(objmat->GetFullName());
 							if (isSupportedMaterial(objmat))
 							{ 
+
+								exportMaterial(objmat);
+								//scene->Parse(
+								//	Property(exportMaterial(objmat)) <<
+								//	Property("")("")
+								//	);
 								//if ((objmat->ClassID() == LR_INTERNAL_MATTE_CLASSID))
 								//{
-									objString.append("scene.materials.");
+									/*objString.append("scene.materials.");
 									objString.append(ToNarrow(matName));
 									objString.append(".type");
 
@@ -803,6 +927,7 @@ int LuxMaxInternal::Render(
 										Property("")("")
 										);
 									tmpMatStr = "";
+									*/
 								//}
 							}
 							else
