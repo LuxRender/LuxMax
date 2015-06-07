@@ -477,17 +477,21 @@ bool isSupportedMaterial(::Mtl* mat)
 	if (mat->ClassID() == LR_INTERNAL_MATTE_CLASSID)
 	{
 		return true;
+		
 	}
-	if (mat->ClassID() == STANDARDMATERIAL_CLASSID)
+	else if (mat->ClassID() == STANDARDMATERIAL_CLASSID)
 	{
 		return true;
 	}
-	if (mat->ClassID() == ARCHITECTURAL_CLASSID)
+	else if (mat->ClassID() == ARCHITECTURAL_CLASSID)
 	{
 		return true;
 	}
-	
-	return false;
+	else
+	{
+		return false;
+	}
+
 }
 
 void exportMaterial(::Mtl* mat)
@@ -512,13 +516,19 @@ void exportMaterial(::Mtl* mat)
 		if (mat->ClassID() == ARCHITECTURAL_CLASSID)
 		{
 			const wchar_t *matType = L"";
+			Properties prop;
+			::Point3 colorDiffuse;
+			float ioroutside , iorinside;
+
+			colorDiffuse = getMaterialDiffuseColor(mat);
 
 			for (int i = 0, count = mat->NumParamBlocks(); i < count; ++i)
 			{
 				IParamBlock2 *pBlock = mat->GetParamBlock(i);
 				matType = pBlock->GetStr(0, GetCOREInterface()->GetTime(), 0);
-				//OutputDebugStringW(L"\nCreating matType material: %s\n",matType);
-				OutputDebugStringW(matType);
+				//2 is ior
+				iorinside = pBlock->GetFloat(2, GetCOREInterface()->GetTime(), 0);
+				ioroutside = iorinside;
 			}
 			OutputDebugStringW(matType);
 			//((getstring(matType) == "Glass - Translucent") || 
@@ -526,31 +536,34 @@ void exportMaterial(::Mtl* mat)
 			{
 				//metal2
 				OutputDebugStringW(_T("\nCreating Metal2 material.\n"));
-				scene->Parse(
-					Property(objString)("metal2") <<
-					Property("")("")
-					);
+
+				std::string tmpmat;// = currmat;
+				tmpmat.append(currmat + ".type = metal2");
+				tmpmat.append("\n");
+				prop.SetFromString(tmpmat);
+				scene->Parse(prop);
 			}
 		
 			//Glass - Clear
-			else if ((getstring(matType) == "Glass - Translucent"))
+			else if ((getstring(matType) == "Glass - Translucent") || (getstring(matType) == "Glass - Clear"))
 			{
-				OutputDebugStringW(_T("\nCreating Glass - clear material.\n"));
-				//Create glass
-				scene->Parse(
-					Property(objString)("glass") <<
-					Property("")("")
-					);
+				OutputDebugStringW(_T("\nCreating Glass.\n"));
 
-				scene->Parse(
-					Property(currmat + ".ioroutside")(1.5) <<
-					Property("")("")
-					);
+				std::string tmpmat;
+				tmpmat.append(currmat + ".type = glass");
+				tmpmat.append("\n");
 
-				scene->Parse(
-					Property(currmat + ".iorinside")(1.0) <<
-					Property("")("")
-					);
+				tmpmat.append(currmat + ".ioroutside = " + ::to_string(ioroutside));
+				tmpmat.append("\n");
+
+				tmpmat.append(currmat + ".iorinside = " + ::to_string(1.0));
+				tmpmat.append("\n");
+
+				tmpmat.append(currmat + ".kr = " + ::to_string(colorDiffuse.x) + " " + ::to_string(colorDiffuse.y) + " " + ::to_string(colorDiffuse.z));
+				tmpmat.append("\n");
+
+				prop.SetFromString(tmpmat);
+				scene->Parse(prop);
 			}
 			else if ((getstring(matType) == "Mirror"))
 			{
@@ -578,7 +591,7 @@ void exportMaterial(::Mtl* mat)
 				Property(objString)("matte") <<
 				Property("")("")
 				);
-			objString = "";
+			//objString = "";
 
 			::Point3 diffcol;
 			diffcol = getMaterialDiffuseColor(mat);
