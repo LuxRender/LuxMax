@@ -34,6 +34,8 @@ public:
 	int workRenderType;
 	int halttime;
 	TSTR halttimewstr = L"30";
+	bool defaultlightchk = true;
+	bool defaultlightauto = true;
 
 	LuxMaxInternalParamDlg(LuxMaxInternal *r, IRendParams *i, BOOL prog);
 	~LuxMaxInternalParamDlg();
@@ -100,6 +102,10 @@ static INT_PTR CALLBACK LuxMaxInternalParamDlgProc(
 		CheckDlgButton(hWnd, IDC_CHECK_OPENCL_CPU, BST_CHECKED);
 		//CheckDlgButton(hWnd, IDC_OUTPUTSCENE, BST_UNCHECKED);
 
+		CheckDlgButton(hWnd, IDC_CHECK_DEFAULT_LIGHT, BST_CHECKED);
+		CheckDlgButton(hWnd, IDC_CHECK_DEFUALT_LIGHT_DISABLE, BST_CHECKED);
+		CheckDlgButton(hWnd, IDC_CHECK_OVERRIDE_MATTERIALS, BST_UNCHECKED);
+
 		break;
 	}
 	case WM_LBUTTONDOWN:
@@ -126,10 +132,20 @@ static INT_PTR CALLBACK LuxMaxInternalParamDlgProc(
 				break;
 			}
 			case IDC_HALTTIME:
-				{
-					HWND hwndOutput = GetDlgItem(hWnd, IDC_HALTTIME);
-					dlg->halttimewstr = GetWindowText(hwndOutput);
+			{
+				HWND hwndOutput = GetDlgItem(hWnd, IDC_HALTTIME);
+				dlg->halttimewstr = GetWindowText(hwndOutput);
 				break;
+			}
+			case IDC_CHECK_DEFAULT_LIGHT:
+			{
+				dlg->defaultlightchk = (GetCheckBox(hWnd, IDC_CHECK_DEFAULT_LIGHT) != 0);
+				//dlg->defaultlightchk = GetCheckBox(hWnd, IDC_CHECK_DEFAULT_LIGHT)
+			}
+			case IDC_CHECK_DEFUALT_LIGHT_DISABLE:
+			{
+				dlg->defaultlightauto = (GetCheckBox(hWnd, IDC_CHECK_DEFUALT_LIGHT_DISABLE) != 0);
+				//dlg->defaultlightauto = GetCheckBox(hWnd, IDC_CHECK_DEFUALT_LIGHT_DISABLE)
 			}
 			//case IDC_ANGLE_SPINNER: // A specific spinner ID.
 				//angle = ((ISpinnerControl *)lParam)->GetFVal();
@@ -175,6 +191,8 @@ LuxMaxInternalParamDlg::LuxMaxInternalParamDlg(
 void LuxMaxInternalParamDlg::InitParamDialog(HWND hWnd) {
 	workFileName = rend->FileName;
 	halttimewstr = rend->halttimewstr;
+	defaultlightchk = rend->defaultlightchk;
+	defaultlightauto = rend->defaultlightauto;
 
 	SetDlgItemText(hWnd, IDC_FILENAME, workFileName);
 
@@ -193,6 +211,8 @@ void LuxMaxInternalParamDlg::AcceptParams() {
 	rend->FileName = workFileName;
 	rend->renderType = workRenderType;
 	rend->halttimewstr= halttimewstr;
+	rend->defaultlightchk = defaultlightchk;
+	rend->defaultlightauto = defaultlightauto;
 }
 
 RendParamDlg * LuxMaxInternal::CreateParamDialog(IRendParams *ir, BOOL prog) {

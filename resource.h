@@ -27,7 +27,11 @@
 #define IDC_CHECK_OPENCL_CPU            1008
 #define IDC_CHECK_OPENCL_GPU            1009
 #define IDC_FILENAME2                   1010
+#define IDC_CHECK_DEFAULT_LIGHT         1010
+#define IDC_CHECK_DEFUALT_LIGHT_DISABLE 1011
 #define IDC_CUSTOM1                     1012
+#define IDC_CHECK_DEFAULT_LIGHT2        1012
+#define IDC_CHECK_OVERRIDE_MATTERIALS   1012
 #define IDC_CHECK1                      1014
 #define IDC_OUTPUTSCENE                 1014
 
