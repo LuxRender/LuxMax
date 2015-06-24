@@ -30,6 +30,8 @@ class LuxMaxInternal : public Renderer {
 		
 		TSTR FileName;
 		TSTR halttimewstr = L"60";
+		bool defaultlightchk = true;
+		bool defaultlightauto = true;
 
 		int renderType;
 		MaxSDK::Util::TextFile::Writer *file;

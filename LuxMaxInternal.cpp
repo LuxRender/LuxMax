@@ -17,16 +17,22 @@
 ***************************************************************************/
 
 #define LUXCORE_MATTE_CLASSID Class_ID(0x98265f22, 0x2cf529dd)
+#define LUXCORE_MATTELIGHT_CLASSID Class_ID(0x32d61a4e, 0x6a3107d8)
 #define CAMERAHELPER_CLASSID Class_ID(4128,0)
 #define LR_INTERNAL_MATTE_CLASSID Class_ID(334255,416532)
 #define OMNI_CLASSID Class_ID(4113, 0)
 #define SPOTLIGHT_CLASSID Class_ID(4114,0)
 #define STANDARDMATERIAL_CLASSID Class_ID(2,0)
 #define ARCHITECTURAL_CLASSID Class_ID(332471230,1763586103)
+#define ARCHDESIGN_CLASSID Class_ID(1890604853, 1242969684)
+#define SKYLIGHT_CLASSID Class_ID(2079724664, 1378764549)
+#define DIRLIGHT_CLASSID Class_ID(4115, 0) // free directional light and sun light classid
+
 
 #include "LuxMaxInternalpch.h"
 #include "resource.h"
 #include "LuxMaxInternal.h"
+//#include "luxlight.h"
 #include <maxscript\maxscript.h>
 #include <render.h>
 #include <point3.h>
@@ -64,6 +70,7 @@ using namespace luxrays;
 extern BOOL FileExists(const TCHAR *filename);
 float* pixels;
 
+bool defaultlightset = true;
 int renderWidth = 0;
 int renderHeight = 0;
 
@@ -137,10 +144,11 @@ int LuxMaxInternal::Open(
 	return str;
 }
 
-static void DoRendering(RenderSession *session) {
+static void DoRendering(RenderSession *session, RendProgressCallback *prog) {
 	const u_int haltTime = session->GetRenderConfig().GetProperties().Get(Property("batch.halttime")(0)).Get<u_int>();
 	const u_int haltSpp = session->GetRenderConfig().GetProperties().Get(Property("batch.haltspp")(0)).Get<u_int>();
 	const float haltThreshold = session->GetRenderConfig().GetProperties().Get(Property("batch.haltthreshold")(-1.f)).Get<float>();
+	const wchar_t *state = NULL;
 
 	char buf[512];
 	const Properties &stats = session->GetStats();
@@ -167,6 +175,11 @@ static void DoRendering(RenderSession *session) {
 			stats.Get("stats.renderengine.total.samplesec").Get<double>() / 1000000.0,
 			stats.Get("stats.dataset.trianglecount").Get<double>() / 1000.0);
 		mprintf(_T("Elapsed time %i\n"), int(elapsedTime));
+
+		state = (L"Rendering ....");
+		prog->SetTitle(state);
+		prog->Progress(elapsedTime+1, haltTime);
+
 		SLG_LOG(buf);
 	}
 
@@ -224,6 +237,7 @@ std::string removeUnwatedChars(std::string& str)
 	return str;
 }
 
+
 Properties exportOmni(INode* Omni)
 {
 	::Point3 trans = Omni->GetNodeTM(GetCOREInterface11()->GetTime()).GetTrans();
@@ -231,6 +245,11 @@ Properties exportOmni(INode* Omni)
 
 	Properties props;
 	std::string objString;
+
+	ObjectState ostate = Omni->EvalWorldState(0);
+	LightObject *light = (LightObject*)ostate.obj;
+	color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
+	float intensityval = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
 
 	objString.append("scene.lights.");
 	objString.append(ToNarrow(Omni->GetName()));
@@ -243,15 +262,113 @@ Properties exportOmni(INode* Omni)
 	objString.append(::to_string(trans.x) + " " + ::to_string(trans.y) + " " + ::to_string(trans.z));
 	objString.append("\n");
 
-	ObjectState ostate = Omni->EvalWorldState(0);
-	LightObject *light = (LightObject*)ostate.obj;
-	color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
-
 	objString.append("scene.lights.");
 	objString.append(ToNarrow(Omni->GetName()));
 	objString.append(".color = ");
 	objString.append(::to_string(color.x / 255) + " " + ::to_string(color.y / 255) + " " + ::to_string(color.z / 255));
 	objString.append("\n");
+
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(Omni->GetName()));
+	objString.append(".power = ");
+	objString.append(::to_string(intensityval));
+	objString.append("\n");
+
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(Omni->GetName()));
+	objString.append(".efficency = ");
+	objString.append(::to_string(intensityval));
+	objString.append("\n");
+
+	props.SetFromString(objString);
+	objString = "";
+	return props;
+}
+
+Properties exportSkyLight(INode* SkyLight)
+{
+	Properties props;
+	std::string objString;
+	::Point3 trans = SkyLight->GetNodeTM(GetCOREInterface11()->GetTime()).GetTrans();
+	::Point3 color;
+
+	ObjectState os = SkyLight->EvalWorldState(GetCOREInterface()->GetTime());
+	LightObject *light = (LightObject*)os.obj;
+
+	color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
+	float ColorIntensValue = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
+
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(SkyLight->GetName()));
+	objString.append(".type = sky");
+	objString.append("\n");
+
+	// direction of sky light must be static as regular 3dsmax sky light, like an ambient light
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(SkyLight->GetName()));
+	objString.append(".dir = 0.166974 -0.59908 0.783085");
+	objString.append("\n");
+
+	/*
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(SkyLight->GetName()));
+	objString.append(".turbidity = ");
+	objString.append(::to_string(2.2));
+	objString.append("\n");
+	*/
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(SkyLight->GetName()));
+	objString.append(".gain = ");
+	objString.append(::to_string(color.x / 255) + " " + ::to_string(color.y / 255) + " " + ::to_string(color.z / 255));
+	objString.append("\n");
+
+	props.SetFromString(objString);
+
+	objString = "";
+	return props;
+}
+
+Properties exportDiright(INode* DirLight)
+{
+	Properties props;
+	std::string objString;
+	::Point3 trans = DirLight->GetNodeTM(GetCOREInterface11()->GetTime()).GetTrans();
+	::Matrix3 targetPos;
+
+	ObjectState os = DirLight->EvalWorldState(GetCOREInterface()->GetTime());
+	LightObject *light = (LightObject*)os.obj;
+
+	::Point3 color;
+	color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
+	//float gainval = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
+	//float intensityval = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
+
+	DirLight->GetTargetTM(GetCOREInterface11()->GetTime(), targetPos);
+	trans = DirLight->GetNodeTM(GetCOREInterface11()->GetTime(), 0).GetTrans();
+
+	//color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
+	//float ColorIntensValue = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
+
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(DirLight->GetName()));
+	objString.append(".type = sun");
+	objString.append("\n");
+
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(DirLight->GetName()));
+	objString.append(".dir = 0.166974 -0.59908 0.783085");
+	objString.append("\n");
+
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(DirLight->GetName()));
+	objString.append(".turbidity = 2.2");
+	objString.append("\n");
+
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(DirLight->GetName()));
+	objString.append(".gain = 0.8 0.8 0.8");
+	objString.append("\n");
+
 	props.SetFromString(objString);
 
 	objString = "";
@@ -477,13 +594,16 @@ bool isSupportedMaterial(::Mtl* mat)
 	if (mat->ClassID() == LR_INTERNAL_MATTE_CLASSID)
 	{
 		return true;
-		
 	}
 	else if (mat->ClassID() == STANDARDMATERIAL_CLASSID)
 	{
 		return true;
 	}
 	else if (mat->ClassID() == ARCHITECTURAL_CLASSID)
+	{
+		return true;
+	}
+	else if (mat->ClassID() == LUXCORE_MATTELIGHT_CLASSID)
 	{
 		return true;
 	}
@@ -584,28 +704,52 @@ void exportMaterial(::Mtl* mat)
 			}
 
 		}
-		else //Parse as matte material.
-		{
-			OutputDebugStringW(_T("\nCreating fallback material.\n"));
+		else if (mat->ClassID() == LUXCORE_MATTELIGHT_CLASSID) 
+			{
+			mprintf(_T("\n Creating Emission material %i \n"));
 			scene->Parse(
 				Property(objString)("matte") <<
 				Property("")("")
 				);
-			//objString = "";
 
 			::Point3 diffcol;
 			diffcol = getMaterialDiffuseColor(mat);
 			::std::string tmpMatStr;
+
 			tmpMatStr.append("scene.materials.");
 			tmpMatStr.append(ToNarrow(matName));
-			tmpMatStr.append(".kd");
-			//mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
+			tmpMatStr.append(".emission");
+
 			scene->Parse(
 				Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
 				Property("")("")
 				);
 			tmpMatStr = "";
-		}
+
+			}
+			else	//Parse as matte material.
+			{
+			
+				OutputDebugStringW(_T("\nCreating fallback material.\n"));
+				scene->Parse(
+					Property(objString)("matte") <<
+					Property("")("")
+					);
+				//objString = "";
+
+				::Point3 diffcol;
+				diffcol = getMaterialDiffuseColor(mat);
+				::std::string tmpMatStr;
+				tmpMatStr.append("scene.materials.");
+				tmpMatStr.append(ToNarrow(matName));
+				tmpMatStr.append(".kd");
+				//mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
+				scene->Parse(
+					Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
+					Property("")("")
+					);
+				tmpMatStr = "";
+			}
 	//}
 }
 
@@ -615,6 +759,14 @@ void exportMaterial(::Mtl* mat)
 	::Point3 diffcolor;
 
 	if (mat->ClassID() == LR_INTERNAL_MATTE_CLASSID)
+	{
+		for (int i = 0, count = mat->NumParamBlocks(); i < count; ++i)
+		{
+			IParamBlock2 *pBlock = mat->GetParamBlock(i);
+			diffcolor = pBlock->GetPoint3(0, GetCOREInterface()->GetTime(), 0);
+		}
+	}
+	if (mat->ClassID() == LUXCORE_MATTELIGHT_CLASSID)
 	{
 		for (int i = 0, count = mat->NumParamBlocks(); i < count; ++i)
 		{
@@ -644,9 +796,8 @@ Properties exportSpotLight(INode* SpotLight)
 
 	::Point3 color;
 	color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
-
-	SpotLight->GetTargetTM(GetCOREInterface11()->GetTime(), targetPos);
-	trans = SpotLight->GetNodeTM(GetCOREInterface11()->GetTime(), 0).GetTrans();
+	//float gainval = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
+	//float intensityval = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
 
 	objString.append("scene.lights.");
 	objString.append(ToNarrow(SpotLight->GetName()));
@@ -659,10 +810,19 @@ Properties exportSpotLight(INode* SpotLight)
 	objString.append(::to_string(trans.x) + " " + ::to_string(trans.y) + " " + ::to_string(trans.z));
 	objString.append("\n");
 
+	SpotLight->GetTargetTM(GetCOREInterface11()->GetTime(), targetPos);
+	trans = SpotLight->GetNodeTM(GetCOREInterface11()->GetTime(), 0).GetTrans();
+
 	objString.append("scene.lights.");
 	objString.append(ToNarrow(SpotLight->GetName()));
 	objString.append(".target = ");
 	objString.append(::to_string(targetPos.GetTrans().x) + " " + ::to_string(targetPos.GetTrans().y) + " " + ::to_string(targetPos.GetTrans().z));
+	objString.append("\n");
+
+	objString.append("scene.lights.");
+	objString.append(ToNarrow(SpotLight->GetName()));
+	objString.append(".gain = ");
+	objString.append(::to_string(color.x) + " " + ::to_string(color.y) + " " + ::to_string(color.z));
 	objString.append("\n");
 
 	objString.append("scene.lights.");
@@ -675,13 +835,6 @@ Properties exportSpotLight(INode* SpotLight)
 	objString.append(ToNarrow(SpotLight->GetName()));
 	objString.append(".conedeltaangle = ");
 	objString.append(to_string(light->GetFallsize(GetCOREInterface11()->GetTime(), FOREVER))); //* 180 / 3.14159265));
-	objString.append("\n");
-
-	objString.append("scene.lights.");
-	objString.append(ToNarrow(SpotLight->GetName()));
-	objString.append(".gain = ");
-	float gainval = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
-	objString.append(::to_string(gainval * color.x) + " " + ::to_string(gainval * color.y) + " " + ::to_string(gainval * color.z));
 	objString.append("\n");
 
 	props.SetFromString(objString);
@@ -704,6 +857,7 @@ int LuxMaxInternal::Render(
 	using namespace luxcore;
 
 	const wchar_t *renderProgTitle = NULL;
+	defaultlightset = true;
 
 	mprintf(_T("\nRendering with Luxcore version: %s,%s \n"), LUXCORE_VERSION_MAJOR, LUXCORE_VERSION_MINOR);
 	int frameNum = t / GetTicksPerFrame();
@@ -714,16 +868,23 @@ int LuxMaxInternal::Render(
 
 	//Export all meshes
 	INode* maxscene = GetCOREInterface7()->GetRootNode();
+
 	for (int a = 0; maxscene->NumChildren() > a; a++)
 	{
 		INode* currNode = maxscene->GetChildNode(a);
 
+		//prog->SetCurField(1);
 		renderProgTitle = (L"Translating object: %s", currNode->GetName());
 		prog->SetTitle(renderProgTitle);
+		mprintf(_T("\n Total Rendering elements number: %i"), maxscene->NumChildren());
+		mprintf(_T("   ::   Current elements number: %i \n"), a+1);
+		prog->Progress(a+1, int(maxscene->NumChildren()/4));
+
 		Object*	obj;
 		ObjectState os = currNode->EvalWorldState(GetCOREInterface()->GetTime());
 		obj = os.obj;
 		bool doExport = true;
+
 		switch (os.obj->SuperClassID())
 		{
 		case HELPER_CLASS_ID:
@@ -736,15 +897,48 @@ int LuxMaxInternal::Render(
 		{
 			Properties props;
 			std::string objString;
+			bool lightsupport = false;
+
+			if (defaultlightchk == true)
+			{
+				if (defaultlightauto == true)
+				{
+					defaultlightset = false;
+				}
+			}
+			else
+			{
+				defaultlightset = false;
+				mprintf(_T("\n Default Light Deactive Automaticlly %i \n"));
+			}
 
 			if (os.obj->ClassID() == OMNI_CLASSID)
 			{
 				scene->Parse(exportOmni(currNode));
+				lightsupport = true;
 			}
-
 			if (os.obj->ClassID() == SPOTLIGHT_CLASSID)
 			{
 				scene->Parse(exportSpotLight(currNode));
+				lightsupport = true;
+			}
+			if (os.obj->ClassID() == SKYLIGHT_CLASSID)
+			{
+				scene->Parse(exportSkyLight(currNode));
+				lightsupport = true;
+			}
+			if (os.obj->ClassID() == DIRLIGHT_CLASSID)
+			{
+				scene->Parse(exportDiright(currNode));
+				lightsupport = true;
+			}
+			if (lightsupport = false)
+			{
+				if (defaultlightchk == true)
+				{
+					mprintf(_T("\n There is No Suported light in scene %i \n"));
+					defaultlightset = true;
+				}
 			}
 
 			break;
@@ -983,18 +1177,20 @@ int LuxMaxInternal::Render(
 			}
 		}
 	}
+	
+	if (defaultlightchk == true)
+	{
+		if (defaultlightset == true)
+		{
+			scene->Parse(
+				Property("scene.lights.skyl.type")("sky") <<
+				Property("scene.lights.skyl.dir")(0.166974f, 0.59908f, 0.783085f) <<
+				Property("scene.lights.skyl.turbidity")(2.2f) <<
+				Property("scene.lights.skyl.gain")(1.0f, 1.0f, 1.0f)
+				);
+		}
+	}
 
-	// Create a SkyLight & SunLight
-	//scene->Parse(
-	//	Property("scene.lights.skyl.type")("sky") <<
-	//	Property("scene.lights.skyl.dir")(0.166974f, 0.59908f, 0.783085f) <<
-	//	Property("scene.lights.skyl.turbidity")(2.2f) <<
-	//	Property("scene.lights.skyl.gain")(0.8f, 0.8f, 0.8f) <<
-	//	Property("scene.lights.sunl.type")("sun") <<
-	//	Property("scene.lights.sunl.dir")(0.166974f, 0.59908f, 0.783085f) <<
-	//	Property("scene.lights.sunl.turbidity")(2.2f) <<
-	//	Property("scene.lights.sunl.gain")(0.8f, 0.8f, 0.8f)
-	//	);
 
 	std::string tmpFilename = FileName.ToCStr();
 	int halttime = (int)_wtof(halttimewstr);
@@ -1033,7 +1229,7 @@ int LuxMaxInternal::Render(
 
 	//We need to stop the rendering immidiately if debug output is selsected.
 
-	DoRendering(session);
+	DoRendering(session, prog);
 	session->Stop();
 
 	int i = 0;
