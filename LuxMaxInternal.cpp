@@ -985,7 +985,7 @@ int LuxMaxInternal::Render(
 				TriObject *p_triobj = NULL;
 
 				BOOL fConvertedToTriObject = obj->CanConvertToType(triObjectClassID) && (p_triobj = (TriObject*)obj->ConvertToType(0, triObjectClassID)) != NULL;
-
+				
 				if (!fConvertedToTriObject)
 				{
 					mprintf(L"Debug: Did not triangulate object : %s\n", currNode->GetName());
@@ -1001,6 +1001,13 @@ int LuxMaxInternal::Render(
 					objName = replacedObjName.c_str();
 
 					::Mesh *p_trimesh = &p_triobj->mesh;
+
+					if (p_trimesh->getNumFaces() < 1)
+					{
+						mprintf(L"Debug: Did not triangulate object : %s, numfaces < 1\n", currNode->GetName());
+						break;
+					}
+
 					p_trimesh->checkNormals(true);
 					p_trimesh->buildNormals();
 
