@@ -28,7 +28,6 @@
 #define SKYLIGHT_CLASSID Class_ID(2079724664, 1378764549)
 #define DIRLIGHT_CLASSID Class_ID(4115, 0) // free directional light and sun light classid
 
-
 #include "LuxMaxInternalpch.h"
 #include "resource.h"
 #include "LuxMaxInternal.h"
@@ -198,6 +197,12 @@ std::string ReplaceAll(std::string str, const std::string& from, const std::stri
 		start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
 	}
 	return str;
+}
+
+std::string floatToString(float number){
+	std::ostringstream buff;
+	buff << number;
+	return buff.str();
 }
 
 bool replace(std::string& str, const std::string& from, const std::string& to) {
@@ -435,7 +440,7 @@ void GetFaceRNormals(::Mesh& mesh, int fi, Point3* normals)
 	{
 		RVertex& rvert = mesh.getRVert(fverts[v]);
 		int numNormals = (int)(rvert.rFlags & NORCT_MASK);
-
+		
 		if (numNormals == 1)
 			normals[v] = rvert.rn.getNormal();
 		else
@@ -869,6 +874,7 @@ int LuxMaxInternal::Render(
 	//Export all meshes
 	INode* maxscene = GetCOREInterface7()->GetRootNode();
 
+
 	for (int a = 0; maxscene->NumChildren() > a; a++)
 	{
 		INode* currNode = maxscene->GetChildNode(a);
@@ -1032,10 +1038,11 @@ int LuxMaxInternal::Render(
 					Point *p = Scene::AllocVerticesBuffer(optcount);
 					Triangle *vi = Scene::AllocTrianglesBuffer(numTriangles);
 					Normal *n = new Normal[optcount];
+					uv = new UV[optcount];
 
 					for (int vert = 0; vert < optcount; vert++)
 					{
-						p[vert] = Point(optverts[vert].p * currNode->GetObjectTM(GetCOREInterface()->GetTime()));
+						p[vert] = Point(optverts[vert].p);// *currNode->GetNodeTM(GetCOREInterface()->GetTime()));
 					}
 
 					for (int norm = 0; norm < optcount; norm++)
@@ -1044,6 +1051,7 @@ int LuxMaxInternal::Render(
 						n[norm].x = tmpNorm.x;
 						n[norm].y = tmpNorm.y;
 						n[norm].z = tmpNorm.z;
+						//mprintf(L"Debug: Writing normals : x: %f %f %f, numfaces < 1\n", tmpNorm.x,tmpNorm.y,tmpNorm.z);
 					}
 
 					for (int i = 0, fi = 0; fi < numTriangles; i += 3, ++fi)
@@ -1056,11 +1064,12 @@ int LuxMaxInternal::Render(
 
 					if (numUvs > 0)
 					{
-						uv = new UV[numUvs];
-						for (int u = 0; u < numUvs; u++)
+						
+						for (int u = 0; u < optcount; u++)
 						{
-							uv[u].u = p_trimesh->getTVert(u).x;
-							uv[u].v = p_trimesh->getTVert(u).y;
+							
+							uv[u].u = optverts[u].uv.x;
+							uv[u].v = optverts[u].uv.y;
 						}
 					}
 
@@ -1071,9 +1080,9 @@ int LuxMaxInternal::Render(
 					else
 					{
 						// Define the object - with UV
-						scene->DefineMesh(ToNarrow(objName), optcount, numTriangles, p, vi, n, NULL, NULL, NULL);
+						scene->DefineMesh(ToNarrow(objName), optcount, numTriangles, p, vi, n, uv, NULL, NULL);
 					}
-
+					
 					delete[] rawverts;
 					delete[] optverts;
 					delete[] indices;
@@ -1108,41 +1117,10 @@ int LuxMaxInternal::Render(
 						}
 						for (int f = 0; f < numsubs; ++f)
 						{
-							//OutputDebugStringW(objmat->GetFullName());
 							if (isSupportedMaterial(objmat))
 							{ 
 
 								exportMaterial(objmat);
-								//scene->Parse(
-								//	Property(exportMaterial(objmat)) <<
-								//	Property("")("")
-								//	);
-								//if ((objmat->ClassID() == LR_INTERNAL_MATTE_CLASSID))
-								//{
-									/*objString.append("scene.materials.");
-									objString.append(ToNarrow(matName));
-									objString.append(".type");
-
-									scene->Parse(
-										Property(objString)("matte") <<
-										Property("")("")
-										);
-									objString = "";
-
-									::Point3 diffcol;
-									diffcol = getMaterialDiffuseColor(objmat);
-									::std::string tmpMatStr;
-									tmpMatStr.append("scene.materials.");
-									tmpMatStr.append(ToNarrow(matName));
-									tmpMatStr.append(".kd");
-									//mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
-									scene->Parse(
-										Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
-										Property("")("")
-										);
-									tmpMatStr = "";
-									*/
-								//}
 							}
 							else
 							{
@@ -1176,9 +1154,87 @@ int LuxMaxInternal::Render(
 						objString.append(ToNarrow(objName));
 						objString.append(".material = ");
 						objString.append(ToNarrow(matName));
-						props.SetFromString(objString);
 
+						props.SetFromString(objString);
 						scene->Parse(props);
+
+						objString = "";
+						objString.append("scene.objects.");
+						objString.append(ToNarrow(objName));
+						objString.append(".transformation = ");
+						//
+						///* 
+						//r00 r01 r02 s.x
+						//r10 r11 r12 s.y
+						//r20 r21 r22 s.z
+						//t.x  t.y   t.z  1.0 */
+
+						/*works
+						objString.append("0.0 1.0 0.0 0.0 ");
+						objString.append("2.0 0.0 0.0 0.0 ");
+						objString.append("0.0 0.0 1.0 0.0 ");
+						objString.append("2.0 2.0 2.0 1.0");
+						*/
+						std::string tmpTrans = "";
+						Matrix3 nodeTransformPos = currNode->GetNodeTM(GetCOREInterface()->GetTime());
+						Matrix3 nodeTransformRot = nodeTransformPos;
+						Matrix3 nodeTransformScale = nodeTransformPos;
+
+						nodeTransformRot.NoTrans();
+						nodeTransformRot.Invert();
+
+						nodeTransformPos.NoScale();
+						//nodeTransformScale.Invert();
+						nodeTransformScale.NoTrans();
+						nodeTransformScale.NoRot();
+						
+
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(0).x));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(0).y));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(0).z));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformScale.GetColumn(3).x));
+						tmpTrans.append(" ");
+
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(1).x));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(1).y));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(1).z));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformScale.GetColumn(3).y));
+						tmpTrans.append(" ");
+
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(2).x));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(2).y));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(2).z));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformScale.GetColumn(3).z));
+						tmpTrans.append(" ");
+
+						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().x));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().y));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().z));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(1.0));
+						
+						objString.append(tmpTrans);
+						
+						//objString.append("0.0 1.0 0.0 0.0 ");
+						//objString.append("2.0 0.0 0.0 0.0 ");
+						//objString.append("0.0 0.0 1.0 0.0 ");
+						//objString.append("2.0 2.0 2.0 1.0");
+
+						props.SetFromString(objString);
+						scene->Parse(props);
+
+						
 					}
 				}
 			}
