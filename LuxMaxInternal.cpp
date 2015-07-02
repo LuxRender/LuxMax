@@ -18,6 +18,7 @@
 
 #define LUXCORE_MATTE_CLASSID Class_ID(0x98265f22, 0x2cf529dd)
 #define LUXCORE_MATTELIGHT_CLASSID Class_ID(0x32d61a4e, 0x6a3107d8)
+#define LUXCORE_CHEKER_CLASSID Class_ID(0x34e85fea, 0x855292c)
 #define CAMERAHELPER_CLASSID Class_ID(4128,0)
 #define LR_INTERNAL_MATTE_CLASSID Class_ID(334255,416532)
 #define OMNI_CLASSID Class_ID(4113, 0)
@@ -27,6 +28,7 @@
 #define ARCHDESIGN_CLASSID Class_ID(1890604853, 1242969684)
 #define SKYLIGHT_CLASSID Class_ID(2079724664, 1378764549)
 #define DIRLIGHT_CLASSID Class_ID(4115, 0) // free directional light and sun light classid
+
 
 #include "LuxMaxInternalpch.h"
 #include "resource.h"
@@ -70,6 +72,7 @@ extern BOOL FileExists(const TCHAR *filename);
 float* pixels;
 
 bool defaultlightset = true;
+int rendertype = 4;
 int renderWidth = 0;
 int renderHeight = 0;
 
@@ -143,7 +146,7 @@ int LuxMaxInternal::Open(
 	return str;
 }
 
-static void DoRendering(RenderSession *session, RendProgressCallback *prog) {
+static void DoRendering(RenderSession *session, RendProgressCallback *prog, Bitmap *tobm) {
 	const u_int haltTime = session->GetRenderConfig().GetProperties().Get(Property("batch.halttime")(0)).Get<u_int>();
 	const u_int haltSpp = session->GetRenderConfig().GetProperties().Get(Property("batch.haltspp")(0)).Get<u_int>();
 	const float haltThreshold = session->GetRenderConfig().GetProperties().Get(Property("batch.haltthreshold")(-1.f)).Get<float>();
@@ -179,6 +182,35 @@ static void DoRendering(RenderSession *session, RendProgressCallback *prog) {
 		prog->SetTitle(state);
 		prog->Progress(elapsedTime+1, haltTime);
 
+		int pixelArraySize = renderWidth * renderHeight * 3;
+
+		pixels = new float[pixelArraySize]();
+
+		session->GetFilm().GetOutput(session->GetFilm().OUTPUT_RGB_TONEMAPPED, pixels, 0);
+		session->GetFilm().Save();
+
+		int i = 0;
+
+		BMM_Color_64 col64;
+		col64.r = 0;
+		col64.g = 0;
+		col64.b = 0;
+		//fill in the pixels
+		for (int w = renderHeight; w > 0; w--)
+		{
+			for (int h = 0; h < renderWidth; h++)
+			{
+				col64.r = (WORD)floorf(pixels[i] * 65535.f + .5f);
+				col64.g = (WORD)floorf(pixels[i + 1] * 65535.f + .5f);
+				col64.b = (WORD)floorf(pixels[i + 2] * 65535.f + .5f);
+
+				tobm->PutPixels(h, w, 1, &col64);
+
+				i += 3;
+			}
+		}
+		tobm->RefreshWindow(NULL);
+
 		SLG_LOG(buf);
 	}
 
@@ -204,7 +236,6 @@ std::string floatToString(float number){
 	buff << number;
 	return buff.str();
 }
-
 bool replace(std::string& str, const std::string& from, const std::string& to) {
 	size_t start_pos = str.find(from);
 	if (start_pos == std::string::npos)
@@ -440,7 +471,7 @@ void GetFaceRNormals(::Mesh& mesh, int fi, Point3* normals)
 	{
 		RVertex& rvert = mesh.getRVert(fverts[v]);
 		int numNormals = (int)(rvert.rFlags & NORCT_MASK);
-		
+
 		if (numNormals == 1)
 			normals[v] = rvert.rn.getNormal();
 		else
@@ -612,6 +643,10 @@ bool isSupportedMaterial(::Mtl* mat)
 	{
 		return true;
 	}
+	else if (mat->ClassID() == LUXCORE_CHEKER_CLASSID)
+	{
+		return true;
+	}
 	else
 	{
 		return false;
@@ -731,7 +766,92 @@ void exportMaterial(::Mtl* mat)
 				);
 			tmpMatStr = "";
 
-			}
+		}
+		else if (mat->ClassID() == LUXCORE_CHEKER_CLASSID)
+		{
+
+			scene->Parse(
+				Property(objString)("matte") <<
+				Property("")("")
+				);
+
+			/*scene.textures.check.type = checkerboard2d
+				scene.textures.check.texture1 = 0.7 0.0 0.0
+				scene.textures.check.texture2 = 0.7 0.7 0.0
+				scene.textures.check.mapping.uvscale = 16 -16*/
+			mprintf(_T("\n Creating Cheker material %i \n"));
+			scene->Parse(
+				Property("scene.textures.check.type")("checkerboard2d") <<
+				Property("scene.textures.check.texture1")("0.7 0.0 0.0") <<
+				Property("scene.textures.check.texture2")("0.7 0.7 0.0") <<
+				Property("scene.textures.check.mapping.uvscale")(16.0f, 16.0f)
+				);
+			mprintf(_T("\n Creating Cheker 01 %i \n"));
+			/*scene->Parse(
+				Property(tmpMatStr)("checkerboard2d") <<
+				Property("")("")
+				);
+
+			::Point3 diffcol;
+			diffcol = getMaterialDiffuseColor(mat);
+			::std::string tmpMatStr;
+
+			tmpMatStr.append("scene.textures.");
+			tmpMatStr.append(ToNarrow(matName));
+			tmpMatStr.append(".type");
+
+			mprintf(_T("\n Creating Cheker material %i \n"));
+			scene->Parse(
+				Property(tmpMatStr)("checkerboard2d") <<
+				Property("")("")
+				);
+			tmpMatStr = "";
+
+			/*tmpMatStr.append("scene.textures.");
+			tmpMatStr.append(ToNarrow(matName));
+			tmpMatStr.append(".texture1");
+
+			mprintf(_T("\n tx01 %i \n"));
+			scene->Parse(
+				Property(tmpMatStr)(float(diffcol.x)/256, float(diffcol.y)/256, float(diffcol.z)/256) <<
+				Property("")("")
+				);
+
+			tmpMatStr = "";
+
+			tmpMatStr.append("scene.textures.");
+			tmpMatStr.append(ToNarrow(matName));
+			tmpMatStr.append(".texture2");
+
+			mprintf(_T("\n tx02 %i \n"));
+			scene->Parse(
+				Property(tmpMatStr)(float(1), float(1), float(1)) <<
+				Property("")("")
+				);
+
+			tmpMatStr = "";
+
+			tmpMatStr.append("scene.textures.");
+			tmpMatStr.append(ToNarrow(matName));
+			tmpMatStr.append(".mapping.uvscale");
+
+			mprintf(_T("\n tx03 %i \n"));
+			scene->Parse(
+				Property(tmpMatStr)("16 - 16") <<
+				Property("")("")
+				);
+
+			/*tmpMatStr.append("scene.materials.");
+			tmpMatStr.append(ToNarrow(matName));
+			tmpMatStr.append(".texture2");
+
+			scene->Parse(
+				Property(tmpMatStr)(float(diffcol.x) / 256, float(diffcol.y) / 256, float(diffcol.z) / 256) <<
+				Property("")("")
+				);*/
+			//tmpMatStr = "";
+
+		}
 			else	//Parse as matte material.
 			{
 			
@@ -874,7 +994,6 @@ int LuxMaxInternal::Render(
 	//Export all meshes
 	INode* maxscene = GetCOREInterface7()->GetRootNode();
 
-
 	for (int a = 0; maxscene->NumChildren() > a; a++)
 	{
 		INode* currNode = maxscene->GetChildNode(a);
@@ -884,7 +1003,7 @@ int LuxMaxInternal::Render(
 		prog->SetTitle(renderProgTitle);
 		mprintf(_T("\n Total Rendering elements number: %i"), maxscene->NumChildren());
 		mprintf(_T("   ::   Current elements number: %i \n"), a+1);
-		prog->Progress(a+1, int(maxscene->NumChildren()/4));
+		prog->Progress(a+1, maxscene->NumChildren());
 
 		Object*	obj;
 		ObjectState os = currNode->EvalWorldState(GetCOREInterface()->GetTime());
@@ -991,7 +1110,7 @@ int LuxMaxInternal::Render(
 				TriObject *p_triobj = NULL;
 
 				BOOL fConvertedToTriObject = obj->CanConvertToType(triObjectClassID) && (p_triobj = (TriObject*)obj->ConvertToType(0, triObjectClassID)) != NULL;
-				
+
 				if (!fConvertedToTriObject)
 				{
 					mprintf(L"Debug: Did not triangulate object : %s\n", currNode->GetName());
@@ -1013,7 +1132,6 @@ int LuxMaxInternal::Render(
 						mprintf(L"Debug: Did not triangulate object : %s, numfaces < 1\n", currNode->GetName());
 						break;
 					}
-
 					p_trimesh->checkNormals(true);
 					p_trimesh->buildNormals();
 
@@ -1064,9 +1182,11 @@ int LuxMaxInternal::Render(
 
 					if (numUvs > 0)
 					{
-						
-						for (int u = 0; u < optcount; u++)
+						//uv = new UV[numUvs];
+					for (int u = 0; u < optcount; u++)
 						{
+
+
 							
 							uv[u].u = optverts[u].uv.x;
 							uv[u].v = optverts[u].uv.y;
@@ -1080,9 +1200,9 @@ int LuxMaxInternal::Render(
 					else
 					{
 						// Define the object - with UV
-						scene->DefineMesh(ToNarrow(objName), optcount, numTriangles, p, vi, n, uv, NULL, NULL);
+						scene->DefineMesh(ToNarrow(objName), optcount, numTriangles, p, vi, n, NULL, NULL, NULL);
 					}
-					
+
 					delete[] rawverts;
 					delete[] optverts;
 					delete[] indices;
@@ -1117,10 +1237,41 @@ int LuxMaxInternal::Render(
 						}
 						for (int f = 0; f < numsubs; ++f)
 						{
+							//OutputDebugStringW(objmat->GetFullName());
 							if (isSupportedMaterial(objmat))
 							{ 
 
 								exportMaterial(objmat);
+								//scene->Parse(
+								//	Property(exportMaterial(objmat)) <<
+								//	Property("")("")
+								//	);
+								//if ((objmat->ClassID() == LR_INTERNAL_MATTE_CLASSID))
+								//{
+									/*objString.append("scene.materials.");
+									objString.append(ToNarrow(matName));
+									objString.append(".type");
+
+									scene->Parse(
+										Property(objString)("matte") <<
+										Property("")("")
+										);
+									objString = "";
+
+									::Point3 diffcol;
+									diffcol = getMaterialDiffuseColor(objmat);
+									::std::string tmpMatStr;
+									tmpMatStr.append("scene.materials.");
+									tmpMatStr.append(ToNarrow(matName));
+									tmpMatStr.append(".kd");
+									//mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
+									scene->Parse(
+										Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
+										Property("")("")
+										);
+									tmpMatStr = "";
+									*/
+								//}
 							}
 							else
 							{
@@ -1246,6 +1397,9 @@ int LuxMaxInternal::Render(
 		if (defaultlightset == true)
 		{
 			scene->Parse(
+				//Property("scene.lights.infinitelight.type")("infinite") <<
+				//Property("scene.lights.infinitelight.file")("C:/Temp/glacier.exr") <<
+				//Property("scene.lights.infinitelight.gain")(1.0f, 1.0f, 1.0f)
 				Property("scene.lights.skyl.type")("sky") <<
 				Property("scene.lights.skyl.dir")(0.166974f, 0.59908f, 0.783085f) <<
 				Property("scene.lights.skyl.turbidity")(2.2f) <<
@@ -1257,6 +1411,7 @@ int LuxMaxInternal::Render(
 
 	std::string tmpFilename = FileName.ToCStr();
 	int halttime = (int)_wtof(halttimewstr);
+
 	if (tmpFilename != NULL)
 	{
 		mprintf(_T("\nRendering to: %s \n"), FileName.ToMSTR());
@@ -1265,6 +1420,38 @@ int LuxMaxInternal::Render(
 	renderWidth = GetCOREInterface11()->GetRendWidth();
 	renderHeight = GetCOREInterface11()->GetRendHeight();
 
+	string tmprendtype = "PATHCPU";
+	rendertype = renderType;
+
+	switch (rendertype)
+	{
+		case 0:
+			tmprendtype = "BIASPATHCPU";
+			break;
+		case 1:
+			tmprendtype = "BIASPATHOCL";
+			break;
+		case 2:
+			tmprendtype = "BIDIRCPU";
+			break;
+		case 3:
+			tmprendtype = "BIDIRVMCPU";
+			break;
+		case 4:
+			tmprendtype = "PATHCPU";
+			break;
+		case 5:
+			tmprendtype = "PATHOCL";
+			break;
+		case 6:
+			tmprendtype = "RTBIASPATHOCL";
+			break;
+		case 7:
+			tmprendtype = "RTPATHOCL";
+			break;
+	}
+	mprintf(_T("\n Renderengine type is %i \n"), rendertype);
+
 	RenderConfig *config = new RenderConfig(
 		//filesaver
 		//Property("renderengine.type")("FILESAVER") <<
@@ -1272,13 +1459,14 @@ int LuxMaxInternal::Render(
 		//Property("filesaver.renderengine.type")("engine") <<
 		//Filesaver
 
-		Property("renderengine.type")("PATHCPU") <<
-		Property("sampler.type")("RANDOM") <<
+		Property("renderengine.type")(tmprendtype) <<
+		Property("sampler.type")("SOBOL") <<
+		//Property("sampler.type")("METROPOLIS") <<
 		Property("opencl.platform.index")(-1) <<
 		Property("opencl.cpu.use")(false) <<
 		Property("opencl.gpu.use")(true) <<
 		Property("batch.halttime")(halttime) <<
-		Property("film.outputs.1.type")("RGB_TONEMAPPED") <<
+		Property("film.outputs.1.type")("RGBA_TONEMAPPED") <<
 		Property("film.outputs.1.filename")(tmpFilename) <<
 		Property("film.imagepipeline.0.type")("TONEMAP_AUTOLINEAR") <<
 		Property("film.imagepipeline.1.type")("GAMMA_CORRECTION") <<
@@ -1292,7 +1480,7 @@ int LuxMaxInternal::Render(
 
 	//We need to stop the rendering immidiately if debug output is selsected.
 
-	DoRendering(session, prog);
+	DoRendering(session, prog, tobm);
 	session->Stop();
 
 	int i = 0;
