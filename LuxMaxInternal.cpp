@@ -180,7 +180,7 @@ static void DoRendering(RenderSession *session, RendProgressCallback *prog, Bitm
 
 		state = (L"Rendering ....");
 		prog->SetTitle(state);
-		prog->Progress(elapsedTime+1, haltTime);
+		prog->Progress(elapsedTime + 1, haltTime);
 
 		int pixelArraySize = renderWidth * renderHeight * 3;
 
@@ -273,7 +273,6 @@ std::string removeUnwatedChars(std::string& str)
 	return str;
 }
 
-
 Properties exportOmni(INode* Omni)
 {
 	::Point3 trans = Omni->GetNodeTM(GetCOREInterface11()->GetTime()).GetTrans();
@@ -282,7 +281,7 @@ Properties exportOmni(INode* Omni)
 	Properties props;
 	std::string objString;
 
-	ObjectState ostate = Omni->EvalWorldState(0);
+	ObjectState ostate = Omni->EvalWorldState(GetCOREInterface()->GetTime());
 	LightObject *light = (LightObject*)ostate.obj;
 	color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
 	float intensityval = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
@@ -317,6 +316,75 @@ Properties exportOmni(INode* Omni)
 	objString.append("\n");
 
 	props.SetFromString(objString);
+	objString = "";
+	return props;
+}
+
+Properties getNodeTransform(INode* node)
+{
+	/*
+	r = row.x - y - z
+	r00 = row0.x
+	Transformation looks like this:
+	r00 r10 r20 0
+	r01 r11 r21 0
+	r02 r12 r22 0
+	*/
+	std::string objString;
+	Properties props;
+
+	//objString = "";
+	objString.append("scene.objects.");
+	objString.append(ToNarrow(node->GetName()));
+	objString.append(".transformation = ");
+
+	std::string tmpTrans = "";
+	Matrix3 nodeTransformPos = node->GetNodeTM(GetCOREInterface()->GetTime());
+	Matrix3 nodeTransformRot = nodeTransformPos;
+	Matrix3 nodeTransformScale = nodeTransformPos;
+
+	nodeTransformRot.NoTrans();
+	nodeTransformScale.NoTrans();
+	nodeTransformScale.NoRot();
+
+	nodeTransformRot = nodeTransformRot * nodeTransformScale;
+
+	objString.append(::to_string(nodeTransformRot.GetColumn(0).x));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformRot.GetColumn(1).x));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformRot.GetColumn(2).x));
+	objString.append(" ");
+	objString.append("0 ");
+
+	objString.append(::to_string(nodeTransformRot.GetColumn(0).y));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformRot.GetColumn(1).y));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformRot.GetColumn(2).y));
+	objString.append(" ");
+	objString.append("0 ");
+
+	objString.append(::to_string(nodeTransformRot.GetColumn(0).z));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformRot.GetColumn(1).z));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformRot.GetColumn(2).z));
+	objString.append(" ");
+	objString.append("0 ");
+
+	objString.append(::to_string(nodeTransformPos.GetTrans().x));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformPos.GetTrans().y));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformPos.GetTrans().z));
+	objString.append(" ");
+
+	objString.append(::to_string(1.0));
+	objString.append("\n");
+
+	props.SetFromString(objString);
+	//scene->Parse(props);
 	objString = "";
 	return props;
 }
@@ -651,12 +719,10 @@ bool isSupportedMaterial(::Mtl* mat)
 	{
 		return false;
 	}
-
 }
 
 void exportMaterial(::Mtl* mat)
 {
-
 	const wchar_t *matName = L"";
 	matName = mat->GetName();
 	std::string tmpMatName = ToNarrow(matName);
@@ -666,106 +732,104 @@ void exportMaterial(::Mtl* mat)
 
 	//if (scene->IsMaterialDefined(ToNarrow(matName)) == false)
 	//{
-		std::string objString = "";
-		objString.append("scene.materials.");
-		objString.append(ToNarrow(matName));
-		std::string currmat = objString;
+	std::string objString = "";
+	objString.append("scene.materials.");
+	objString.append(ToNarrow(matName));
+	std::string currmat = objString;
 
-		objString.append(".type");
+	objString.append(".type");
 
-		if (mat->ClassID() == ARCHITECTURAL_CLASSID)
+	if (mat->ClassID() == ARCHITECTURAL_CLASSID)
+	{
+		const wchar_t *matType = L"";
+		Properties prop;
+		::Point3 colorDiffuse;
+		float ioroutside, iorinside;
+
+		colorDiffuse = getMaterialDiffuseColor(mat);
+
+		for (int i = 0, count = mat->NumParamBlocks(); i < count; ++i)
 		{
-			const wchar_t *matType = L"";
-			Properties prop;
-			::Point3 colorDiffuse;
-			float ioroutside , iorinside;
-
-			colorDiffuse = getMaterialDiffuseColor(mat);
-
-			for (int i = 0, count = mat->NumParamBlocks(); i < count; ++i)
-			{
-				IParamBlock2 *pBlock = mat->GetParamBlock(i);
-				matType = pBlock->GetStr(0, GetCOREInterface()->GetTime(), 0);
-				//2 is ior
-				iorinside = pBlock->GetFloat(2, GetCOREInterface()->GetTime(), 0);
-				ioroutside = iorinside;
-			}
-			OutputDebugStringW(matType);
-			//((getstring(matType) == "Glass - Translucent") || 
-			if ((getstring(matType) == "Metal - Brushed"))
-			{
-				//metal2
-				OutputDebugStringW(_T("\nCreating Metal2 material.\n"));
-
-				std::string tmpmat;// = currmat;
-				tmpmat.append(currmat + ".type = metal2");
-				tmpmat.append("\n");
-				prop.SetFromString(tmpmat);
-				scene->Parse(prop);
-			}
-		
-			//Glass - Clear
-			else if ((getstring(matType) == "Glass - Translucent") || (getstring(matType) == "Glass - Clear"))
-			{
-				OutputDebugStringW(_T("\nCreating Glass.\n"));
-
-				std::string tmpmat;
-				tmpmat.append(currmat + ".type = glass");
-				tmpmat.append("\n");
-
-				tmpmat.append(currmat + ".ioroutside = " + ::to_string(ioroutside));
-				tmpmat.append("\n");
-
-				tmpmat.append(currmat + ".iorinside = " + ::to_string(1.0));
-				tmpmat.append("\n");
-
-				tmpmat.append(currmat + ".kr = " + ::to_string(colorDiffuse.x) + " " + ::to_string(colorDiffuse.y) + " " + ::to_string(colorDiffuse.z));
-				tmpmat.append("\n");
-
-				prop.SetFromString(tmpmat);
-				scene->Parse(prop);
-			}
-			else if ((getstring(matType) == "Mirror"))
-			{
-				//metal2
-				OutputDebugStringW(_T("\nCreating Mirror material.\n"));
-				scene->Parse(
-					Property(objString)("mirror") <<
-					Property("")("")
-					);
-			}
-			else
-			{
-				OutputDebugStringW(_T("\nCreating fallback architectural material for unsupported template.\n"));
-				scene->Parse(
-					Property(objString)("matte") <<
-					Property("")("")
-					);
-			}
-
+			IParamBlock2 *pBlock = mat->GetParamBlock(i);
+			matType = pBlock->GetStr(0, GetCOREInterface()->GetTime(), 0);
+			//2 is ior
+			iorinside = pBlock->GetFloat(2, GetCOREInterface()->GetTime(), 0);
+			ioroutside = iorinside;
 		}
-		else if (mat->ClassID() == LUXCORE_MATTELIGHT_CLASSID) 
-			{
-			mprintf(_T("\n Creating Emission material %i \n"));
+		OutputDebugStringW(matType);
+		//((getstring(matType) == "Glass - Translucent") ||
+		if ((getstring(matType) == "Metal - Brushed"))
+		{
+			//metal2
+			OutputDebugStringW(_T("\nCreating Metal2 material.\n"));
+
+			std::string tmpmat;// = currmat;
+			tmpmat.append(currmat + ".type = metal2");
+			tmpmat.append("\n");
+			prop.SetFromString(tmpmat);
+			scene->Parse(prop);
+		}
+
+		//Glass - Clear
+		else if ((getstring(matType) == "Glass - Translucent") || (getstring(matType) == "Glass - Clear"))
+		{
+			OutputDebugStringW(_T("\nCreating Glass.\n"));
+
+			std::string tmpmat;
+			tmpmat.append(currmat + ".type = glass");
+			tmpmat.append("\n");
+
+			tmpmat.append(currmat + ".ioroutside = " + ::to_string(ioroutside));
+			tmpmat.append("\n");
+
+			tmpmat.append(currmat + ".iorinside = " + ::to_string(1.0));
+			tmpmat.append("\n");
+
+			tmpmat.append(currmat + ".kr = " + ::to_string(colorDiffuse.x) + " " + ::to_string(colorDiffuse.y) + " " + ::to_string(colorDiffuse.z));
+			tmpmat.append("\n");
+
+			prop.SetFromString(tmpmat);
+			scene->Parse(prop);
+		}
+		else if ((getstring(matType) == "Mirror"))
+		{
+			//metal2
+			OutputDebugStringW(_T("\nCreating Mirror material.\n"));
+			scene->Parse(
+				Property(objString)("mirror") <<
+				Property("")("")
+				);
+		}
+		else
+		{
+			OutputDebugStringW(_T("\nCreating fallback architectural material for unsupported template.\n"));
 			scene->Parse(
 				Property(objString)("matte") <<
 				Property("")("")
 				);
+		}
+	}
+	else if (mat->ClassID() == LUXCORE_MATTELIGHT_CLASSID)
+	{
+		mprintf(_T("\n Creating Emission material %i \n"));
+		scene->Parse(
+			Property(objString)("matte") <<
+			Property("")("")
+			);
 
-			::Point3 diffcol;
-			diffcol = getMaterialDiffuseColor(mat);
-			::std::string tmpMatStr;
+		::Point3 diffcol;
+		diffcol = getMaterialDiffuseColor(mat);
+		::std::string tmpMatStr;
 
-			tmpMatStr.append("scene.materials.");
-			tmpMatStr.append(ToNarrow(matName));
-			tmpMatStr.append(".emission");
+		tmpMatStr.append("scene.materials.");
+		tmpMatStr.append(ToNarrow(matName));
+		tmpMatStr.append(".emission");
 
-			scene->Parse(
-				Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
-				Property("")("")
-				);
-			tmpMatStr = "";
-
+		scene->Parse(
+			Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
+			Property("")("")
+			);
+		tmpMatStr = "";
 		}
 		else if (mat->ClassID() == LUXCORE_CHEKER_CLASSID)
 		{
@@ -852,29 +916,28 @@ void exportMaterial(::Mtl* mat)
 			//tmpMatStr = "";
 
 		}
-			else	//Parse as matte material.
-			{
-			
-				OutputDebugStringW(_T("\nCreating fallback material.\n"));
-				scene->Parse(
-					Property(objString)("matte") <<
-					Property("")("")
-					);
-				//objString = "";
+	else	//Parse as matte material.
+	{
+		OutputDebugStringW(_T("\nCreating fallback material.\n"));
+		scene->Parse(
+			Property(objString)("matte") <<
+			Property("")("")
+			);
+		//objString = "";
 
-				::Point3 diffcol;
-				diffcol = getMaterialDiffuseColor(mat);
-				::std::string tmpMatStr;
-				tmpMatStr.append("scene.materials.");
-				tmpMatStr.append(ToNarrow(matName));
-				tmpMatStr.append(".kd");
-				//mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
-				scene->Parse(
-					Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
-					Property("")("")
-					);
-				tmpMatStr = "";
-			}
+		::Point3 diffcol;
+		diffcol = getMaterialDiffuseColor(mat);
+		::std::string tmpMatStr;
+		tmpMatStr.append("scene.materials.");
+		tmpMatStr.append(ToNarrow(matName));
+		tmpMatStr.append(".kd");
+		//mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
+		scene->Parse(
+			Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
+			Property("")("")
+			);
+		tmpMatStr = "";
+	}
 	//}
 }
 
@@ -903,7 +966,6 @@ void exportMaterial(::Mtl* mat)
 	{
 		diffcolor = mat->GetDiffuse(0);
 	}
-	
 
 	return diffcolor;
 }
@@ -968,6 +1030,7 @@ Properties exportSpotLight(INode* SpotLight)
 
 
 
+
 int LuxMaxInternal::Render(
 	TimeValue t,   			// frame to render.
 	Bitmap *tobm, 			// optional target bitmap
@@ -1002,7 +1065,7 @@ int LuxMaxInternal::Render(
 		renderProgTitle = (L"Translating object: %s", currNode->GetName());
 		prog->SetTitle(renderProgTitle);
 		mprintf(_T("\n Total Rendering elements number: %i"), maxscene->NumChildren());
-		mprintf(_T("   ::   Current elements number: %i \n"), a+1);
+		mprintf(_T("   ::   Current elements number: %i \n"), a + 1);
 		prog->Progress(a+1, maxscene->NumChildren());
 
 		Object*	obj;
@@ -1074,7 +1137,7 @@ int LuxMaxInternal::Render(
 			//::Point3 camTrans = currNode->GetNodeTM(t).GetTrans();
 			CameraObject*   cameraPtr = (CameraObject *)os.obj;
 			INode* camNode = GetCOREInterface9()->GetActiveViewExp().GetViewCamera();
-			
+
 			if (camNode == NULL)
 			{
 				MessageBox(0, L"Set active view to a target camera and render again.", L"Error!", MB_OK);
@@ -1239,8 +1302,7 @@ int LuxMaxInternal::Render(
 						{
 							//OutputDebugStringW(objmat->GetFullName());
 							if (isSupportedMaterial(objmat))
-							{ 
-
+							{
 								exportMaterial(objmat);
 								//scene->Parse(
 								//	Property(exportMaterial(objmat)) <<
@@ -1295,7 +1357,6 @@ int LuxMaxInternal::Render(
 									Property("")("")
 									);
 								tmpMatStr = "";
-
 							}
 						}
 						//	}
@@ -1305,93 +1366,75 @@ int LuxMaxInternal::Render(
 						objString.append(ToNarrow(objName));
 						objString.append(".material = ");
 						objString.append(ToNarrow(matName));
-
+						objString.append("\n");
 						props.SetFromString(objString);
 						scene->Parse(props);
-
 						objString = "";
+
 						objString.append("scene.objects.");
 						objString.append(ToNarrow(objName));
 						objString.append(".transformation = ");
-						//
-						///* 
-						//r00 r01 r02 s.x
-						//r10 r11 r12 s.y
-						//r20 r21 r22 s.z
-						//t.x  t.y   t.z  1.0 */
 
-						/*works
-						objString.append("0.0 1.0 0.0 0.0 ");
-						objString.append("2.0 0.0 0.0 0.0 ");
-						objString.append("0.0 0.0 1.0 0.0 ");
-						objString.append("2.0 2.0 2.0 1.0");
-						*/
+						//
+						///*
+						//r = row.x - y - z
+						//r00 r10 r20 0
+						//r01 r11 r21 0
+						//r02 r12 r22 0
+						//*/
+
 						std::string tmpTrans = "";
 						Matrix3 nodeTransformPos = currNode->GetNodeTM(GetCOREInterface()->GetTime());
 						Matrix3 nodeTransformRot = nodeTransformPos;
 						Matrix3 nodeTransformScale = nodeTransformPos;
 
 						nodeTransformRot.NoTrans();
-						nodeTransformRot.Invert();
-
-						nodeTransformPos.NoScale();
-						//nodeTransformScale.Invert();
 						nodeTransformScale.NoTrans();
 						nodeTransformScale.NoRot();
-						
+
+						nodeTransformRot = nodeTransformRot * nodeTransformScale;
 
 						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(0).x));
 						tmpTrans.append(" ");
-						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(0).y));
-						tmpTrans.append(" ");
-						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(0).z));
-						tmpTrans.append(" ");
-						tmpTrans.append(floatToString(nodeTransformScale.GetColumn(3).x));
-						tmpTrans.append(" ");
-
 						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(1).x));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(2).x));
+						tmpTrans.append(" ");
+						tmpTrans.append("0 ");
+
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(0).y));
 						tmpTrans.append(" ");
 						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(1).y));
 						tmpTrans.append(" ");
-						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(1).z));
-						tmpTrans.append(" ");
-						tmpTrans.append(floatToString(nodeTransformScale.GetColumn(3).y));
-						tmpTrans.append(" ");
-
-						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(2).x));
-						tmpTrans.append(" ");
 						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(2).y));
+						tmpTrans.append(" ");
+						tmpTrans.append("0 ");
+
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(0).z));
+						tmpTrans.append(" ");
+						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(1).z));
 						tmpTrans.append(" ");
 						tmpTrans.append(floatToString(nodeTransformRot.GetColumn(2).z));
 						tmpTrans.append(" ");
-						tmpTrans.append(floatToString(nodeTransformScale.GetColumn(3).z));
-						tmpTrans.append(" ");
+						tmpTrans.append("0 ");
 
 						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().x));
 						tmpTrans.append(" ");
 						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().y));
 						tmpTrans.append(" ");
 						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().z));
-						tmpTrans.append(" ");
-						tmpTrans.append(floatToString(1.0));
-						
+						tmpTrans.append(" 1.0");
+
 						objString.append(tmpTrans);
-						
-						//objString.append("0.0 1.0 0.0 0.0 ");
-						//objString.append("2.0 0.0 0.0 0.0 ");
-						//objString.append("0.0 0.0 1.0 0.0 ");
-						//objString.append("2.0 2.0 2.0 1.0");
-
 						props.SetFromString(objString);
-						scene->Parse(props);
 
-						
+						scene->Parse(props);
 					}
 				}
 			}
 		}
 	}
-	
+
 	if (defaultlightchk == true)
 	{
 		if (defaultlightset == true)
@@ -1407,7 +1450,6 @@ int LuxMaxInternal::Render(
 				);
 		}
 	}
-
 
 	std::string tmpFilename = FileName.ToCStr();
 	int halttime = (int)_wtof(halttimewstr);
