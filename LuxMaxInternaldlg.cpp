@@ -22,18 +22,22 @@
 #include <maxscript\maxscript.h>
 #include "3dsmaxport.h"
 #include <sstream>
+#include <string>
 
 class LuxMaxInternalParamDlg : public RendParamDlg {
 public:
 	LuxMaxInternal *rend;
 	IRendParams *ir;
 	HWND hPanel;
+	//HWND hDlg;
 	BOOL prog;
 	HFONT hFont;
 	TSTR workFileName;
-	int workRenderType;
+	//int workRenderType;
 	int halttime;
 	TSTR halttimewstr = L"30";
+	int  rendertype;
+	TSTR vbinterval = L"1";
 	bool defaultlightchk = true;
 	bool defaultlightauto = true;
 
@@ -78,6 +82,7 @@ INT_PTR LuxMaxInternalParamDlg::WndProc(
 static INT_PTR CALLBACK LuxMaxInternalParamDlgProc(
 	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	//LuxMaxInternalParamDlg *info = DLGetWindowLongPtr<LuxMaxInternalParamDlg*>(hWnd);
 
 	DisableAccelerators();
 	LuxMaxInternalParamDlg *dlg = DLGetWindowLongPtr<LuxMaxInternalParamDlg*>(hWnd);
@@ -88,15 +93,39 @@ static INT_PTR CALLBACK LuxMaxInternalParamDlgProc(
 		dlg = (LuxMaxInternalParamDlg*)lParam;
 		DLSetWindowLongPtr(hWnd, lParam);
 		
-		SendDlgItemMessage(hWnd, IDC_COMBO1, CB_ADDSTRING, 0, (LPARAM)L"PATHCPU");
-		SendDlgItemMessage(hWnd, IDC_COMBO2, CB_ADDSTRING, 0, (LPARAM)L"random");
-		//SendDlgItemMessage(hWnd, IDC_CUSTOM1, CB_ADDSTRING, 0, (LPARAM)L"33");
-		SendDlgItemMessage(hWnd, IDC_COMBO2, CB_SETCURSEL, 0, (LPARAM)L"");
+		SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"BIASPATHCPU");
+		SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"BIASPATHOCL");
+		SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"BIDIRCPU");
+		//SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"BIDIRHYBRID");
+		SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"BIDIRVMCPU");
+		//SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"CBIDIRHYBRID");
+		//SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"LIGHTCPU");
+		SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"PATHCPU");
+		//SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"PATHHYBRID");
+		SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"PATHOCL");
+		//SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"PATHOCLBASE");
+		SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"RTBIASPATHOCL");
+		SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_ADDSTRING, 0, (LPARAM)L"RTPATHOCL");
+		SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_SELECTSTRING, 0, (LPARAM)L"PATHCPU");
+		//SendDlgItemMessage(hWnd, IDC_RENDERTYPE, CB_SETCURSEL, 0, (LPARAM)L"PATHCPU");
 		//store value back into workRenderType = rend->renderType
-		SendDlgItemMessage(hWnd, IDC_COMBO1, CB_SETCURSEL, 0, (LPARAM)L"");
+		SendDlgItemMessage(hWnd, IDC_COMBO2, CB_ADDSTRING, 0, (LPARAM)L"Random");
+		SendDlgItemMessage(hWnd, IDC_COMBO2, CB_ADDSTRING, 0, (LPARAM)L"Sobol");
+		SendDlgItemMessage(hWnd, IDC_COMBO2, CB_ADDSTRING, 0, (LPARAM)L"Metropolis");
+		SendDlgItemMessage(hWnd, IDC_COMBO2, CB_SELECTSTRING, 0, (LPARAM)L"Sobol");
 
+		SendDlgItemMessage(hWnd, IDC_FILTERS_TYPE_COMBO, CB_ADDSTRING, 0, (LPARAM)L"Blackman Harris");
+		SendDlgItemMessage(hWnd, IDC_FILTERS_TYPE_COMBO, CB_ADDSTRING, 0, (LPARAM)L"Catmall rom");
+		SendDlgItemMessage(hWnd, IDC_FILTERS_TYPE_COMBO, CB_ADDSTRING, 0, (LPARAM)L"Triangle");
+		SendDlgItemMessage(hWnd, IDC_FILTERS_TYPE_COMBO, CB_ADDSTRING, 0, (LPARAM)L"Sinc");
+		SendDlgItemMessage(hWnd, IDC_FILTERS_TYPE_COMBO, CB_ADDSTRING, 0, (LPARAM)L"Mitchell");
+		SendDlgItemMessage(hWnd, IDC_FILTERS_TYPE_COMBO, CB_ADDSTRING, 0, (LPARAM)L"Gaussian");
+		SendDlgItemMessage(hWnd, IDC_FILTERS_TYPE_COMBO, CB_ADDSTRING, 0, (LPARAM)L"Box");
+		SendDlgItemMessage(hWnd, IDC_FILTERS_TYPE_COMBO, CB_SELECTSTRING, 0, (LPARAM)L"Mitchell");
+
+		SendDlgItemMessage(hWnd, IDC_COMBO_FILM_OUTPUT_TYPE, CB_ADDSTRING, 0, (LPARAM)L"RGBA_TONEMAPPED");
 		SendDlgItemMessage(hWnd, IDC_COMBO_FILM_OUTPUT_TYPE, CB_ADDSTRING, 0, (LPARAM)L"RGB_TONEMAPPED");
-		SendDlgItemMessage(hWnd, IDC_COMBO_FILM_OUTPUT_TYPE, CB_SETCURSEL, 0, (LPARAM)L"");
+		SendDlgItemMessage(hWnd, IDC_COMBO_FILM_OUTPUT_TYPE, CB_SELECTSTRING, 0, (LPARAM)L"RGBA_TONEMAPPED");
 		
 		CheckDlgButton(hWnd, IDC_CHECK_OPENCL_GPU, BST_UNCHECKED);
 		CheckDlgButton(hWnd, IDC_CHECK_OPENCL_CPU, BST_CHECKED);
@@ -137,15 +166,76 @@ static INT_PTR CALLBACK LuxMaxInternalParamDlgProc(
 				dlg->halttimewstr = GetWindowText(hwndOutput);
 				break;
 			}
+			case IDC_RENDERTYPE:
+			{
+				switch (HIWORD(wParam))
+				{
+					case CBN_SELCHANGE:
+					{
+						
+						//dlg->rendertype = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
+						HWND comboCtl = GetDlgItem(hWnd, IDC_RENDERTYPE);
+						//int itemindex = ComboBox_GetCurSel(comboCtl);
+						dlg->rendertype = ComboBox_GetCurSel(comboCtl);
+						mprintf(_T("\n Selected renderengine index %i \n"), dlg->rendertype);
+						//dlg->rendertype = ComboBox_GetItemData(comboCtl, sel);
+						//sel = ComboBox_GetItemData(comboCtl, sel);
+						//mprintf(_T("\n Selected renderengine sel %i \n"), sel);
+						//mprintf(_T("\n Selected renderengine typr %i \n"), dlg->rendertype);
+						//TSTR temp = ComboBox_GetText(comboCtl, text,MAX_PATH);
+						/*switch (itemindex)
+						{
+							case 0:
+								dlg->rendertype = "BIASPATHCPU";
+								break;
+							case 1:
+								dlg->rendertype = "BIASPATHOCL";
+								break;
+							case 2:
+								dlg->rendertype = "BIDIRCPU";
+								break;
+							case 3:
+								dlg->rendertype = "BIDIRVMCPU";
+								break;
+							case 4:
+								dlg->rendertype = "PATHCPU";
+								break;
+							case 5:
+								dlg->rendertype = "PATHOCL";
+								break;
+							case 6:
+								dlg->rendertype = "RTBIASPATHOCL";
+								break;
+							case 7:
+								dlg->rendertype = "RTPATHOCL";
+								break;
+						}*/
+						SetFocus(hWnd);
+						break;
+					}
+				}
+
+				//MessageBox(0, L"Set new render typr.", L"TEST", MB_OK);
+				//dlg->defaultlightchk = GetCheckBox(hWnd, IDC_CHECK_DEFAULT_LIGHT)
+				break;
+			}
+			case IDC_VBINTERVAL:
+			{
+				HWND hwndOutput = GetDlgItem(hWnd, IDC_VBINTERVAL);
+				dlg->vbinterval = GetWindowText(hwndOutput);
+				break;
+			}
 			case IDC_CHECK_DEFAULT_LIGHT:
 			{
 				dlg->defaultlightchk = (GetCheckBox(hWnd, IDC_CHECK_DEFAULT_LIGHT) != 0);
 				//dlg->defaultlightchk = GetCheckBox(hWnd, IDC_CHECK_DEFAULT_LIGHT)
+				break;
 			}
 			case IDC_CHECK_DEFUALT_LIGHT_DISABLE:
 			{
 				dlg->defaultlightauto = (GetCheckBox(hWnd, IDC_CHECK_DEFUALT_LIGHT_DISABLE) != 0);
 				//dlg->defaultlightauto = GetCheckBox(hWnd, IDC_CHECK_DEFUALT_LIGHT_DISABLE)
+				break;
 			}
 			//case IDC_ANGLE_SPINNER: // A specific spinner ID.
 				//angle = ((ISpinnerControl *)lParam)->GetFVal();
@@ -185,14 +275,28 @@ LuxMaxInternalParamDlg::LuxMaxInternalParamDlg(
 			LuxMaxInternalParamDlgProc,
 			GetString(IDS_VRENDTITLE),
 			(LPARAM)this);
+		hPanel = ir->AddRollupPage(
+			hInstance,
+			MAKEINTRESOURCE(IDD_RENDER_SAMPLER),
+			LuxMaxInternalParamDlgProc,
+			GetString(IDS_SAMPLER),
+			(LPARAM)this);
+		hPanel = ir->AddRollupPage(
+			hInstance,
+			MAKEINTRESOURCE(IDD_RENDER_FILTER),
+			LuxMaxInternalParamDlgProc,
+			GetString(IDS_FILTERS),
+			(LPARAM)this);
 	}
 }
 
 void LuxMaxInternalParamDlg::InitParamDialog(HWND hWnd) {
 	workFileName = rend->FileName;
 	halttimewstr = rend->halttimewstr;
+	rendertype = rend->renderType;
 	defaultlightchk = rend->defaultlightchk;
 	defaultlightauto = rend->defaultlightauto;
+	vbinterval = rend->vbinterval;
 
 	SetDlgItemText(hWnd, IDC_FILENAME, workFileName);
 
@@ -209,8 +313,9 @@ void LuxMaxInternalParamDlg::InitProgDialog(HWND hWnd) {
 
 void LuxMaxInternalParamDlg::AcceptParams() {
 	rend->FileName = workFileName;
-	rend->renderType = workRenderType;
-	rend->halttimewstr= halttimewstr;
+	rend->renderType = rendertype;
+	rend->halttimewstr = halttimewstr;
+	rend->vbinterval = vbinterval;
 	rend->defaultlightchk = defaultlightchk;
 	rend->defaultlightauto = defaultlightauto;
 }
