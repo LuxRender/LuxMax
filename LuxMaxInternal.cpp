@@ -250,7 +250,7 @@ Properties exportOmni(INode* Omni)
 	Properties props;
 	std::string objString;
 
-	ObjectState ostate = Omni->EvalWorldState(0);
+	ObjectState ostate = Omni->EvalWorldState(GetCOREInterface()->GetTime());
 	LightObject *light = (LightObject*)ostate.obj;
 	color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
 	float intensityval = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
@@ -285,6 +285,75 @@ Properties exportOmni(INode* Omni)
 	objString.append("\n");
 
 	props.SetFromString(objString);
+	objString = "";
+	return props;
+}
+
+Properties getNodeTransform(INode* node)
+{
+	/*
+	r = row.x - y - z
+	r00 = row0.x
+	Transformation looks like this:
+	r00 r10 r20 0
+	r01 r11 r21 0
+	r02 r12 r22 0
+	*/
+	std::string objString;
+	Properties props;
+
+	//objString = "";
+	objString.append("scene.objects.");
+	objString.append(ToNarrow(node->GetName()));
+	objString.append(".transformation = ");
+
+	std::string tmpTrans = "";
+	Matrix3 nodeTransformPos = node->GetNodeTM(GetCOREInterface()->GetTime());
+	Matrix3 nodeTransformRot = nodeTransformPos;
+	Matrix3 nodeTransformScale = nodeTransformPos;
+
+	nodeTransformRot.NoTrans();
+	nodeTransformScale.NoTrans();
+	nodeTransformScale.NoRot();
+
+	nodeTransformRot = nodeTransformRot * nodeTransformScale;
+
+	objString.append(::to_string(nodeTransformRot.GetColumn(0).x));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformRot.GetColumn(1).x));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformRot.GetColumn(2).x));
+	objString.append(" ");
+	objString.append("0 ");
+
+	objString.append(::to_string(nodeTransformRot.GetColumn(0).y));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformRot.GetColumn(1).y));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformRot.GetColumn(2).y));
+	objString.append(" ");
+	objString.append("0 ");
+
+	objString.append(::to_string(nodeTransformRot.GetColumn(0).z));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformRot.GetColumn(1).z));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformRot.GetColumn(2).z));
+	objString.append(" ");
+	objString.append("0 ");
+
+	objString.append(::to_string(nodeTransformPos.GetTrans().x));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformPos.GetTrans().y));
+	objString.append(" ");
+	objString.append(::to_string(nodeTransformPos.GetTrans().z));
+	objString.append(" ");
+
+	objString.append(::to_string(1.0));
+	objString.append("\n");
+
+	props.SetFromString(objString);
+	//scene->Parse(props);
 	objString = "";
 	return props;
 }
@@ -839,6 +908,9 @@ Properties exportSpotLight(INode* SpotLight)
 	return props;
 }
 
+
+
+
 int LuxMaxInternal::Render(
 	TimeValue t,   			// frame to render.
 	Bitmap *tobm, 			// optional target bitmap
@@ -1140,23 +1212,22 @@ int LuxMaxInternal::Render(
 						objString.append(ToNarrow(objName));
 						objString.append(".material = ");
 						objString.append(ToNarrow(matName));
+						objString.append("\n");
 						props.SetFromString(objString);
 						scene->Parse(props);
-
 						objString = "";
+
 						objString.append("scene.objects.");
 						objString.append(ToNarrow(objName));
 						objString.append(".transformation = ");
 
-						
-						/*
-						r = row.x - y - z
-						r00 = row0.x
-						Transformation looks like this:
-						r00 r10 r20 0
-						r01 r11 r21 0
-						r02 r12 r22 0
-						*/
+						//
+						///*
+						//r = row.x - y - z
+						//r00 r10 r20 0
+						//r01 r11 r21 0
+						//r02 r12 r22 0
+						//*/
 
 						std::string tmpTrans = "";
 						Matrix3 nodeTransformPos = currNode->GetNodeTM(GetCOREInterface()->GetTime());
@@ -1198,12 +1269,11 @@ int LuxMaxInternal::Render(
 						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().y));
 						tmpTrans.append(" ");
 						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().z));
-						tmpTrans.append(" ");
+						tmpTrans.append(" 1.0");
 
-						tmpTrans.append(floatToString(1.0));
 						objString.append(tmpTrans);
-
 						props.SetFromString(objString);
+
 						scene->Parse(props);
 					}
 				}
