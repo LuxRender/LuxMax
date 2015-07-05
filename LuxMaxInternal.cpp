@@ -1198,19 +1198,12 @@ int LuxMaxInternal::Render(
 					p_trimesh->checkNormals(true);
 					p_trimesh->buildNormals();
 
-					const wchar_t *matName = L"";
-					matName = currNode->GetMtl()->GetName();
-					std::string tmpMatName = ToNarrow(matName);
-					removeUnwatedChars(tmpMatName);
-					std::wstring replacedMaterialName = std::wstring(tmpMatName.begin(), tmpMatName.end());
-					matName = replacedMaterialName.c_str();
-
 					int numUvs = p_trimesh->getNumTVerts();
-
 					UV *uv = NULL;
 
 					int rawcount = p_trimesh->numFaces * 3;
 					int optcount = 0;
+
 					vertexPtr rawverts = CollectRawVerts(*p_trimesh, rawcount);
 					vertexPtr optverts = CreateOptimizeVertexList(rawverts, rawcount, optcount);
 					unsigned int* indices = CreateOptimizeFaceIndices(rawverts, rawcount, optverts, optcount);
@@ -1246,11 +1239,11 @@ int LuxMaxInternal::Render(
 					if (numUvs > 0)
 					{
 						//uv = new UV[numUvs];
-					for (int u = 0; u < optcount; u++)
+						for (int u = 0; u < optcount; u++)
 						{
 
 
-							
+
 							uv[u].u = optverts[u].uv.x;
 							uv[u].v = optverts[u].uv.y;
 						}
@@ -1287,11 +1280,48 @@ int LuxMaxInternal::Render(
 					objString = "";
 
 					Mtl *objmat = NULL;
-					objmat = currNode->GetMtl();
-					//if (!scene->IsMaterialDefined(ToNarrow(matName)))
-					//{
-					if (objmat != NULL)
+
+					if (currNode->GetMtl() == NULL)
 					{
+						objString.append("scene.materials.undefined");
+						objString.append(".type");
+
+						scene->Parse(
+							Property(objString)("matte") <<
+							Property("")("")
+							);
+						objString = "";
+
+						::std::string tmpMatStr;
+						tmpMatStr.append("scene.materials.undefined.kd");
+						mprintf(L"Creating fallback material for undefined material.\n");
+						scene->Parse(
+							Property(tmpMatStr)(float(0.5), float(0.5), float(0.5)) <<
+							Property("")("")
+							);
+						tmpMatStr = "";
+
+						objString = "";
+						objString.append("scene.objects.");
+						objString.append(ToNarrow(objName));
+						objString.append(".material = ");
+						objString.append("undefined");
+						objString.append("\n");
+						props.SetFromString(objString);
+						scene->Parse(props);
+						objString = "";
+
+					}
+					else
+					{
+						const wchar_t *matName = L"";
+						matName = currNode->GetMtl()->GetName();
+						std::string tmpMatName = ToNarrow(matName);
+						removeUnwatedChars(tmpMatName);
+						std::wstring replacedMaterialName = std::wstring(tmpMatName.begin(), tmpMatName.end());
+						matName = replacedMaterialName.c_str();
+
+						objmat = currNode->GetMtl();
 						int numsubs = 0;
 						numsubs = objmat->NumSubMtls();
 						if (numsubs < 1)
@@ -1300,40 +1330,9 @@ int LuxMaxInternal::Render(
 						}
 						for (int f = 0; f < numsubs; ++f)
 						{
-							//OutputDebugStringW(objmat->GetFullName());
 							if (isSupportedMaterial(objmat))
 							{
 								exportMaterial(objmat);
-								//scene->Parse(
-								//	Property(exportMaterial(objmat)) <<
-								//	Property("")("")
-								//	);
-								//if ((objmat->ClassID() == LR_INTERNAL_MATTE_CLASSID))
-								//{
-									/*objString.append("scene.materials.");
-									objString.append(ToNarrow(matName));
-									objString.append(".type");
-
-									scene->Parse(
-										Property(objString)("matte") <<
-										Property("")("")
-										);
-									objString = "";
-
-									::Point3 diffcol;
-									diffcol = getMaterialDiffuseColor(objmat);
-									::std::string tmpMatStr;
-									tmpMatStr.append("scene.materials.");
-									tmpMatStr.append(ToNarrow(matName));
-									tmpMatStr.append(".kd");
-									//mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
-									scene->Parse(
-										Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
-										Property("")("")
-										);
-									tmpMatStr = "";
-									*/
-								//}
 							}
 							else
 							{
@@ -1359,7 +1358,6 @@ int LuxMaxInternal::Render(
 								tmpMatStr = "";
 							}
 						}
-						//	}
 
 						objString = "";
 						objString.append("scene.objects.");
@@ -1370,6 +1368,7 @@ int LuxMaxInternal::Render(
 						props.SetFromString(objString);
 						scene->Parse(props);
 						objString = "";
+					}
 
 						objString.append("scene.objects.");
 						objString.append(ToNarrow(objName));
@@ -1429,7 +1428,6 @@ int LuxMaxInternal::Render(
 						props.SetFromString(objString);
 
 						scene->Parse(props);
-					}
 				}
 			}
 		}
