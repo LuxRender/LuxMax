@@ -180,7 +180,9 @@ static void DoRendering(RenderSession *session, RendProgressCallback *prog, Bitm
 
 		state = (L"Rendering ....");
 		prog->SetTitle(state);
-		prog->Progress(elapsedTime + 1, haltTime);
+		bool renderabort = prog->Progress(elapsedTime+1, haltTime);
+		if (renderabort == false)
+			break;
 
 		int pixelArraySize = renderWidth * renderHeight * 3;
 
