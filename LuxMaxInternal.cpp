@@ -1382,12 +1382,9 @@ int LuxMaxInternal::Render(
 						//*/
 
 						std::string tmpTrans = "";
-						Point3 nodeObjTrans = currNode->GetObjOffsetPos();
-						
-						Matrix3 nodeTransformPos = currNode->GetNodeTM(GetCOREInterface()->GetTime());
+						Matrix3 nodeTransformPos = currNode->GetObjTMAfterWSM(GetCOREInterface()->GetTime());
 						Matrix3 nodeTransformRot = nodeTransformPos;
 						Matrix3 nodeTransformScale = nodeTransformPos;
-						
 
 						nodeTransformRot.NoTrans();
 						nodeTransformScale.NoTrans();
@@ -1419,11 +1416,11 @@ int LuxMaxInternal::Render(
 						tmpTrans.append(" ");
 						tmpTrans.append("0 ");
 
-						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().x + nodeObjTrans.x));
+						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().x));
 						tmpTrans.append(" ");
-						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().y + nodeObjTrans.y));
+						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().y));
 						tmpTrans.append(" ");
-						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().z + nodeObjTrans.z));
+						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().z));
 						tmpTrans.append(" 1.0");
 
 						objString.append(tmpTrans);
