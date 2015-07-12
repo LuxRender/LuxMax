@@ -434,6 +434,54 @@ Properties exportSkyLight(INode* SkyLight)
 	return props;
 }
 
+std::string getMaxNodeTransform(INode* node)
+{
+	
+	std::string tmpTrans = "";
+	Matrix3 nodeTransformPos = node->GetObjTMAfterWSM(GetCOREInterface()->GetTime());
+	Matrix3 nodeTransformRot = nodeTransformPos;
+	Matrix3 nodeTransformScale = nodeTransformPos;
+
+	nodeTransformRot.NoTrans();
+	nodeTransformScale.NoTrans();
+	nodeTransformScale.NoRot();
+
+	nodeTransformRot = nodeTransformRot * nodeTransformScale;
+
+	tmpTrans.append(floatToString(nodeTransformRot.GetColumn(0).x));
+	tmpTrans.append(" ");
+	tmpTrans.append(floatToString(nodeTransformRot.GetColumn(1).x));
+	tmpTrans.append(" ");
+	tmpTrans.append(floatToString(nodeTransformRot.GetColumn(2).x));
+	tmpTrans.append(" ");
+	tmpTrans.append("0 ");
+
+	tmpTrans.append(floatToString(nodeTransformRot.GetColumn(0).y));
+	tmpTrans.append(" ");
+	tmpTrans.append(floatToString(nodeTransformRot.GetColumn(1).y));
+	tmpTrans.append(" ");
+	tmpTrans.append(floatToString(nodeTransformRot.GetColumn(2).y));
+	tmpTrans.append(" ");
+	tmpTrans.append("0 ");
+
+	tmpTrans.append(floatToString(nodeTransformRot.GetColumn(0).z));
+	tmpTrans.append(" ");
+	tmpTrans.append(floatToString(nodeTransformRot.GetColumn(1).z));
+	tmpTrans.append(" ");
+	tmpTrans.append(floatToString(nodeTransformRot.GetColumn(2).z));
+	tmpTrans.append(" ");
+	tmpTrans.append("0 ");
+
+	tmpTrans.append(floatToString(nodeTransformPos.GetTrans().x));
+	tmpTrans.append(" ");
+	tmpTrans.append(floatToString(nodeTransformPos.GetTrans().y));
+	tmpTrans.append(" ");
+	tmpTrans.append(floatToString(nodeTransformPos.GetTrans().z));
+	tmpTrans.append(" 1.0");
+
+	return tmpTrans;
+}
+
 Properties exportDiright(INode* DirLight)
 {
 	Properties props;
@@ -1381,7 +1429,7 @@ int LuxMaxInternal::Render(
 						//r02 r12 r22 0
 						//*/
 
-						std::string tmpTrans = "";
+						/*std::string tmpTrans = "";
 						Matrix3 nodeTransformPos = currNode->GetObjTMAfterWSM(GetCOREInterface()->GetTime());
 						Matrix3 nodeTransformRot = nodeTransformPos;
 						Matrix3 nodeTransformScale = nodeTransformPos;
@@ -1423,9 +1471,10 @@ int LuxMaxInternal::Render(
 						tmpTrans.append(floatToString(nodeTransformPos.GetTrans().z));
 						tmpTrans.append(" 1.0");
 
-						objString.append(tmpTrans);
+						objString.append(tmpTrans);*/
+						//props.SetFromString(objString);
+						objString.append(getMaxNodeTransform(currNode));
 						props.SetFromString(objString);
-
 						scene->Parse(props);
 				}
 			}
