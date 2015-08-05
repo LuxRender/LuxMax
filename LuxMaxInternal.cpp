@@ -306,13 +306,29 @@ vertexPtr CollectRawVerts(::Mesh& mesh, int rawcount)
 		Point3 fnormals[3];
 		GetFaceRNormals(mesh, f, fnormals);
 		short mid = faces->getMatID();
+		Point2 tmpUv = Point2(0, 0);
+		bool hasUvs = true;
+		if (mesh.getNumTVerts() < 1)
+		{
+			hasUvs = false;
+		}
+
 		for (int v = 0; v < 3; ++v)
 		{
 			vertex& rv = rawverts[i++];
 			rv.index = faces->v[v];
 			rv.p = verts[faces->v[v]];
 			rv.n = fnormals[v];
-			rv.uv = uvverts[tvfaces->t[v]];
+			if (hasUvs)
+			{
+				rv.uv = uvverts[tvfaces->t[v]];
+			}
+			else
+			{
+				rv.uv.x = 0;
+				rv.uv.y = 0;
+			}
+			
 			rv.mid = mid;
 			rv.hashit();
 		}
@@ -593,8 +609,6 @@ int LuxMaxInternal::Render(
 					p_trimesh->buildNormals();
 
 					int numUvs = p_trimesh->getNumTVerts();
-					UV *uv = NULL;
-
 					int rawcount = p_trimesh->numFaces * 3;
 					int optcount = 0;
 
@@ -606,11 +620,11 @@ int LuxMaxInternal::Render(
 					Point *p = Scene::AllocVerticesBuffer(optcount);
 					Triangle *vi = Scene::AllocTrianglesBuffer(numTriangles);
 					Normal *n = new Normal[optcount];
-					uv = new UV[optcount];
+					UV *uv = new UV[optcount];
 
 					for (int vert = 0; vert < optcount; vert++)
 					{
-						p[vert] = Point(optverts[vert].p);// *currNode->GetNodeTM(GetCOREInterface()->GetTime()));
+						p[vert] = Point(optverts[vert].p);
 					}
 
 					for (int norm = 0; norm < optcount; norm++)
@@ -619,7 +633,6 @@ int LuxMaxInternal::Render(
 						n[norm].x = tmpNorm.x;
 						n[norm].y = tmpNorm.y;
 						n[norm].z = tmpNorm.z;
-						//mprintf(L"Debug: Writing normals : x: %f %f %f, numfaces < 1\n", tmpNorm.x,tmpNorm.y,tmpNorm.z);
 					}
 
 					for (int i = 0, fi = 0; fi < numTriangles; i += 3, ++fi)
@@ -653,6 +666,7 @@ int LuxMaxInternal::Render(
 					delete[] rawverts;
 					delete[] optverts;
 					delete[] indices;
+					delete[] uv;
 
 					p = NULL;
 					vi = NULL;
