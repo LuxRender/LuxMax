@@ -45,10 +45,6 @@ using std::min;
 #include <luxcore/luxcore.h>
 #include <luxrays\luxrays.h>
 
-//#include <time.h>
-
-//#define FOREVER Interval(TIME_NegInfinity, TIME_PosInfinity)
-
 LuxMaxUtils lmutil;
 
 LuxMaxLights::LuxMaxLights()
