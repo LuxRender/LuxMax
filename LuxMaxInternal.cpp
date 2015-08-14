@@ -17,6 +17,8 @@
 ***************************************************************************/
 
 #define CAMERAHELPER_CLASSID Class_ID(4128,0)
+#define MAX2016_PHYSICAL_CAMERA Class_ID(1181315608,686293133)
+
 #define OMNI_CLASSID Class_ID(4113, 0)
 #define SPOTLIGHT_CLASSID Class_ID(4114,0)
 
@@ -547,6 +549,13 @@ int LuxMaxInternal::Render(
 			//::Point3 camTrans = currNode->GetNodeTM(t).GetTrans();
 			CameraObject*   cameraPtr = (CameraObject *)os.obj;
 			INode* camNode = GetCOREInterface9()->GetActiveViewExp().GetViewCamera();
+
+			if (cameraPtr->ClassID() == MAX2016_PHYSICAL_CAMERA)
+			{
+				MessageBox(0, L"3DSmax 2016 Physical camera not supported, please render through 'standard' camera.", L"Error!", MB_OK);
+				return false;
+				break;
+			}
 
 			if (camNode == NULL)
 			{
