@@ -113,6 +113,17 @@ BEGIN
     COMBOBOX        IDC_FILTERS_TYPE_COMBO,69,12,191,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
 END
 
+IDD_DEPTH DIALOGEX 0, 0, 281, 49
+STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    GROUPBOX        "",-1,5,3,272,41
+    LTEXT           "Lens radius :",-1,13,13,52,8
+    EDITTEXT        IDC_CAMERA_DEPTH,62,10,46,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_ANGLE,"CustEdit",WS_TABSTOP,62,25,36,11
+    CONTROL         "",IDC_ANGLESPIN,"SpinnerControl",0x0,99,25,9,11
+END
+
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -174,6 +185,11 @@ BEGIN
         VERTGUIDE, 152
         BOTTOMMARGIN, 96
     END
+
+    IDD_DEPTH, DIALOG
+    BEGIN
+        VERTGUIDE, 13
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -228,6 +244,7 @@ BEGIN
     IDS_RENDER_TYPE         "Render Type"
     IDS_SAMPLER             "Image Sampler"
     IDS_FILTERS             "Image Filter"
+    IDS_DEPTH               "Depth Of Field"
 END
 
 #endif    // English (United States) resources

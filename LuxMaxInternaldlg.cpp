@@ -36,6 +36,8 @@ public:
 	//int workRenderType;
 	int halttime;
 	TSTR halttimewstr = L"30";
+	float LensRadius;
+	TSTR LensRadiusstr = L"0";
 	int  rendertype;
 	TSTR vbinterval = L"1";
 	bool defaultlightchk = true;
@@ -166,6 +168,12 @@ static INT_PTR CALLBACK LuxMaxInternalParamDlgProc(
 				dlg->halttimewstr = GetWindowText(hwndOutput);
 				break;
 			}
+			case IDC_CAMERA_DEPTH:
+			{
+				HWND hwndOutputB = GetDlgItem(hWnd, IDC_CAMERA_DEPTH);
+				dlg->LensRadiusstr = GetWindowText(hwndOutputB);
+				break;
+			}
 			case IDC_RENDERTYPE:
 			{
 				switch (HIWORD(wParam))
@@ -287,12 +295,19 @@ LuxMaxInternalParamDlg::LuxMaxInternalParamDlg(
 			LuxMaxInternalParamDlgProc,
 			GetString(IDS_FILTERS),
 			(LPARAM)this);
+		hPanel = ir->AddRollupPage(
+			hInstance,
+			MAKEINTRESOURCE(IDD_DEPTH),
+			LuxMaxInternalParamDlgProc,
+			GetString(IDS_DEPTH),
+			(LPARAM)this);
 	}
 }
 
 void LuxMaxInternalParamDlg::InitParamDialog(HWND hWnd) {
 	workFileName = rend->FileName;
 	halttimewstr = rend->halttimewstr;
+	LensRadiusstr = rend->LensRadiusstr;
 	rendertype = rend->renderType;
 	defaultlightchk = rend->defaultlightchk;
 	defaultlightauto = rend->defaultlightauto;
@@ -302,6 +317,9 @@ void LuxMaxInternalParamDlg::InitParamDialog(HWND hWnd) {
 
 	HWND hwndOutput = GetDlgItem(hWnd, IDC_HALTTIME);
 	SetWindowText(hwndOutput, rend->halttimewstr);
+
+	HWND hwndOutputB = GetDlgItem(hWnd, IDC_CAMERA_DEPTH);
+	SetWindowText(hwndOutputB, rend->LensRadiusstr);
 }
 
 void LuxMaxInternalParamDlg::InitProgDialog(HWND hWnd) {
@@ -309,12 +327,16 @@ void LuxMaxInternalParamDlg::InitProgDialog(HWND hWnd) {
 
 	HWND hwndOutput = GetDlgItem(hWnd, IDC_HALTTIME);
 	SetWindowText(hwndOutput, rend->halttimewstr.data());
+
+	HWND hwndOutputB = GetDlgItem(hWnd, IDC_CAMERA_DEPTH);
+	SetWindowText(hwndOutputB, rend->LensRadiusstr.data());
 }
 
 void LuxMaxInternalParamDlg::AcceptParams() {
 	rend->FileName = workFileName;
 	rend->renderType = rendertype;
 	rend->halttimewstr = halttimewstr;
+	rend->LensRadiusstr = LensRadiusstr;
 	rend->vbinterval = vbinterval;
 	rend->defaultlightchk = defaultlightchk;
 	rend->defaultlightauto = defaultlightauto;

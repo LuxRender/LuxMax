@@ -30,6 +30,7 @@ class LuxMaxInternal : public Renderer {
 		
 		TSTR FileName;
 		TSTR halttimewstr = L"60";
+		TSTR LensRadiusstr = L"0";
 		//string rendertype = "";
 		TSTR vbinterval = L"1";
 		bool defaultlightchk = true;

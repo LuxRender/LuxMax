@@ -562,11 +562,22 @@ int LuxMaxInternal::Render(
 				::Matrix3 targetPos;
 				NewCam->GetTargetTM(t, targetPos);
 
+				float FOV = cameraPtr->GetFOV(t, FOREVER) * 180 / PI;
+				float aspectratio = GetCOREInterface11()->GetImageAspRatio();
+				if (aspectratio < 1)
+					FOV = 2.0f * ((180 / PI) *(atan(tan((PI / 180)*(FOV / 2.0f)) / aspectratio)));
+
+				float LensRadius = (float)_wtof(LensRadiusstr);
+				//float blur = camNode->GetImageBlurMultiplier(t);
 				mprintf(L"Rendering with camera: : %s\n", camNode->GetName());
 				scene->Parse(
 					Property("scene.camera.lookat.orig")(camTrans.x, camTrans.y, camTrans.z) <<
 					Property("scene.camera.lookat.target")(targetPos.GetTrans().x, targetPos.GetTrans().y, targetPos.GetTrans().z) <<
-					Property("scene.camera.fieldofview")(cameraPtr->GetFOV(t, FOREVER) * 180 / pi)
+					Property("scene.camera.fieldofview")(FOV) <<
+					Property("scene.camera.lensradius")(LensRadius) <<
+					Property("scene.camera.focaldistance")(cameraPtr->GetTDist(t, FOREVER)) <<
+					Property("scene.camera.shutteropen")(0.0f) <<
+					Property("scene.camera.shutterclose")(1.615f)
 					);
 				break;
 			}
@@ -930,6 +941,7 @@ void LuxMaxInternal::ResetParams(){
 
 #define FILENAME_CHUNKID 001
 #define HALTTIME_CHUNKID 002
+#define LENSRADIUS_CHUNKID 003
 
 IOResult LuxMaxInternal::Save(ISave *isave) {
 	if (_tcslen(FileName) > 0) {
@@ -940,6 +952,9 @@ IOResult LuxMaxInternal::Save(ISave *isave) {
 
 	isave->BeginChunk(HALTTIME_CHUNKID);
 	isave->WriteWString(halttimewstr);
+	isave->EndChunk();
+	isave->BeginChunk(LENSRADIUS_CHUNKID);
+	isave->WriteWString(LensRadiusstr);
 	isave->EndChunk();
 	return IO_OK;
 }
@@ -955,6 +970,10 @@ IOResult LuxMaxInternal::Load(ILoad *iload) {
 				FileName = buf;
 			break;
 		case HALTTIME_CHUNKID:
+			if (IO_OK == iload->ReadWStringChunk(&buf))
+				halttimewstr = buf;
+			break;
+		case LENSRADIUS_CHUNKID:
 			if (IO_OK == iload->ReadWStringChunk(&buf))
 				halttimewstr = buf;
 			break;
