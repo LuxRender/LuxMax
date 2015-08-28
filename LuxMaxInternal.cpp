@@ -25,7 +25,6 @@
 #define SKYLIGHT_CLASSID Class_ID(2079724664, 1378764549)
 #define DIRLIGHT_CLASSID Class_ID(4115, 0) // free directional light and sun light classid
 
-
 #include "LuxMaxInternalpch.h"
 #include "resource.h"
 #include "LuxMaxInternal.h"
@@ -33,6 +32,7 @@
 #include "LuxMaxUtils.h"
 #include "LuxMaxMaterials.h"
 #include "LuxMaxLights.h"
+#include "LuxMaxMesh.h"
 
 #include <maxscript\maxscript.h>
 #include <render.h>
@@ -48,7 +48,6 @@
 #include <string.h>
 #include <iostream>
 
-
 namespace luxcore
 {
 #include <luxcore/luxcore.h>
@@ -61,11 +60,10 @@ namespace luxcore
 #include <locale>
 #include <sstream>
 
-
-
 LuxMaxLights lxmLights;
 LuxMaxMaterials lxmMaterials;
 LuxMaxUtils lxmUtils;
+LuxMaxMesh lxmMesh;
 
 #pragma warning (push)
 #pragma warning( disable:4002)
@@ -84,7 +82,6 @@ int renderWidth = 0;
 int renderHeight = 0;
 
 Scene *scene;
-
 
 class LuxMaxInternalClassDesc :public ClassDesc {
 public:
@@ -133,7 +130,6 @@ int LuxMaxInternal::Open(
 	return 1;
 }
 
-
 static void DoRendering(RenderSession *session, RendProgressCallback *prog, Bitmap *tobm) {
 	const u_int haltTime = session->GetRenderConfig().GetProperties().Get(Property("batch.halttime")(0)).Get<u_int>();
 	const u_int haltSpp = session->GetRenderConfig().GetProperties().Get(Property("batch.haltspp")(0)).Get<u_int>();
@@ -168,7 +164,7 @@ static void DoRendering(RenderSession *session, RendProgressCallback *prog, Bitm
 
 		state = (L"Rendering ....");
 		prog->SetTitle(state);
-		bool renderabort = prog->Progress(elapsedTime+1, haltTime);
+		bool renderabort = prog->Progress(elapsedTime + 1, haltTime);
 		if (renderabort == false)
 			break;
 
@@ -212,236 +208,7 @@ static void DoRendering(RenderSession *session, RendProgressCallback *prog, Bitm
 	session->GetFilm().Save();
 }
 
-
 //New code for meshes
-static int hashPoint3(Point3& p) { return (*(int*)&p.x * 73856093) ^ (*(int*)&p.y * 19349663) ^ (*(int*)&p.z * 83492791); }
-
-struct vertex : public MaxHeapOperators
-{
-	static const int hashTable[];
-
-	Point3 p;
-	Point3 n;
-	Point3 uv;
-	int	   mid;
-
-	unsigned int index;
-	int			 hash;
-
-	vertex() : index(0), hash(0) {}
-
-	bool operator==(const vertex& v) const { return hash == v.hash; }
-	bool operator!=(const vertex& v) const { return hash != v.hash; }
-	bool operator>(const vertex& v) const  { return hash > v.hash; }
-	bool operator<(const vertex& v) const  { return hash < v.hash; }
-
-	void hashit()
-	{
-		hash ^= hashPoint3(p) * hashTable[0];
-		hash ^= hashPoint3(n) * hashTable[1];
-		hash ^= hashPoint3(uv) * hashTable[2];
-		hash ^= mid * hashTable[3];
-		hash ^= index * hashTable[4];
-	}
-};
-
-const int vertex::hashTable[] = { 93944371, 36311839, 82895123, 10033109, 59882063, 42133979, 24823181 };
-
-typedef vertex* vertexPtr;
-
-int CompareVertexFn(const void* i, const void* j)
-{
-	if (**(vertexPtr*)i < **(vertexPtr*)j)
-		return -1;
-	if (**(vertexPtr*)i > **(vertexPtr*)j)
-		return 1;
-	return 0;
-}
-
-void GetFaceRNormals(::Mesh& mesh, int fi, Point3* normals)
-{
-	Face& face = mesh.faces[fi];
-	DWORD fsmg = face.getSmGroup();
-	if (fsmg == 0)
-	{
-		normals[0] = normals[1] = normals[2] = mesh.getFaceNormal(fi);
-		return;
-	}
-	MtlID fmtl = face.getMatID();
-	DWORD* fverts = face.getAllVerts();
-	for (int v = 0; v < 3; ++v)
-	{
-		RVertex& rvert = mesh.getRVert(fverts[v]);
-		int numNormals = (int)(rvert.rFlags & NORCT_MASK);
-
-		if (numNormals == 1)
-			normals[v] = rvert.rn.getNormal();
-		else
-		{
-			for (int n = 0; n < numNormals; ++n)
-			{
-				RNormal& rn = rvert.ern[n];
-				if ((fsmg & rn.getSmGroup()) && fmtl == rn.getMtlIndex())
-				{
-					normals[v] = rn.getNormal();
-					break;
-				}
-			}
-		}
-	}
-}
-
-vertexPtr CollectRawVerts(::Mesh& mesh, int rawcount)
-{
-	int numfaces = mesh.numFaces;
-	vertexPtr rawverts = new vertex[rawcount];
-	if (!rawverts) return NULL;
-
-	mesh.checkNormals(TRUE);
-	Face* faces = mesh.faces;
-	Point3* verts = mesh.verts;
-	TVFace* tvfaces = mesh.tvFace;
-	Point3* uvverts = mesh.tVerts;
-
-	for (int f = 0, i = 0; f < numfaces; ++f, ++faces, ++tvfaces)
-	{
-		Point3 fnormals[3];
-		GetFaceRNormals(mesh, f, fnormals);
-		short mid = faces->getMatID();
-		Point2 tmpUv = Point2(0, 0);
-		bool hasUvs = true;
-		if (mesh.getNumTVerts() < 1)
-		{
-			hasUvs = false;
-		}
-
-		for (int v = 0; v < 3; ++v)
-		{
-			vertex& rv = rawverts[i++];
-			rv.index = faces->v[v];
-			rv.p = verts[faces->v[v]];
-			rv.n = fnormals[v];
-			if (hasUvs)
-			{
-				rv.uv = uvverts[tvfaces->t[v]];
-			}
-			else
-			{
-				rv.uv.x = 0;
-				rv.uv.y = 0;
-			}
-			
-			rv.mid = mid;
-			rv.hashit();
-		}
-	}
-	return rawverts;
-}
-
-vertexPtr CreateOptimizeVertexList(vertexPtr rawverts, int numverts, int& numoutverts)
-{
-	vertexPtr* vptrs = new vertexPtr[numverts];
-
-	vertexPtr vptr = rawverts;
-	for (int i = 0; i < numverts; ++i, ++vptr)
-		vptrs[i] = vptr;
-
-	qsort(vptrs, numverts, sizeof(vertexPtr), CompareVertexFn);
-
-	int* copylist = new int[numverts];
-	unsigned int cc = 0, ri = 0;
-	copylist[cc] = vptrs[ri] - rawverts;
-	while (++ri < numverts)
-	{
-		int index = vptrs[ri] - rawverts;
-		if (rawverts[copylist[cc]] != rawverts[index])
-			copylist[++cc] = index;
-	}
-	numoutverts = cc + 1;
-	vertexPtr optverts = new vertex[numoutverts];
-
-	for (int i = 0; i < numoutverts; ++i)
-		optverts[i] = rawverts[copylist[i]];
-
-	delete[] copylist;
-	delete[] vptrs;
-	return optverts;
-}
-
-unsigned int* CreateOptimizeFaceIndices(vertexPtr raw, int rawcount, vertexPtr opt, int optcount)
-{
-	vertexPtr* vptrs = new vertexPtr[optcount];
-	unsigned int* faces = new unsigned int[rawcount];
-
-	vertexPtr vptr = opt;
-	for (int i = 0; i < optcount; ++i, ++vptr)
-		vptrs[i] = vptr;
-
-	qsort(vptrs, optcount, sizeof(vertexPtr), CompareVertexFn);
-
-	for (int i = 0; i < rawcount; ++i)
-	{
-		vertexPtr key = &raw[i];
-
-		// find the correct index of a raw vert in the optimized array
-
-		vertexPtr* result = (vertexPtr*)bsearch(&key, vptrs, optcount, sizeof(vertexPtr), CompareVertexFn);
-		if (result)
-		{
-			faces[i] = *result - opt; // why derefence vertexPtr to get index?
-		}
-		else
-		{
-			mprintf(_T("\nError getting the face index for index: %i \n"), i);
-		}
-	}
-
-	delete[] vptrs;
-	return faces;
-}
-
-void BuildMesh(::Mesh& mesh, vertexPtr verts, int nverts, unsigned int* faces, int nfaces)
-{
-	mesh.setNumVerts(nverts);
-	mesh.setNumFaces(nfaces);
-	mesh.setNumTVerts(nverts);
-	mesh.setNumTVFaces(nfaces);
-
-	::MeshNormalSpec* nspec = new ::MeshNormalSpec;
-	nspec->SetNumFaces(nfaces);
-	nspec->SetNumNormals(nverts);
-
-	for (int v = 0; v < nverts; ++v)
-	{
-		mesh.setVert(v, verts[v].p);
-		mesh.setTVert(v, verts[v].uv);
-		nspec->Normal(v) = verts[v].n;
-	}
-	int fi = 0;
-	for (int f = 0; f < nfaces * 3; f += 3)
-	{
-		int a = faces[f];
-		int b = faces[f + 1];
-		int c = faces[f + 2];
-		mesh.faces[fi].setVerts(a, b, c);
-		mesh.tvFace[fi].setTVerts(a, b, c);
-		mesh.faces[fi].setEdgeVisFlags(1, 1, 1);
-		mesh.faces[fi].setMatID(verts[a].mid);
-		nspec->Face(fi).SetNormalID(0, a);
-		nspec->Face(fi).SetNormalID(1, b);
-		nspec->Face(fi).SetNormalID(2, c);
-		fi++;
-	}
-	nspec->MakeNormalsExplicit(false);
-
-	MeshNormalSpec *meshNormals = (MeshNormalSpec *)mesh.GetInterface(MESH_NORMAL_SPEC_INTERFACE);
-	if (meshNormals)
-	{
-		*meshNormals = *nspec;
-		meshNormals->SetParent(&mesh);
-	}
-	delete nspec;
-}
 
 int LuxMaxInternal::Render(
 	TimeValue t,   			// frame to render.
@@ -478,7 +245,7 @@ int LuxMaxInternal::Render(
 		prog->SetTitle(renderProgTitle);
 		mprintf(_T("\n Total Rendering elements number: %i"), maxscene->NumChildren());
 		mprintf(_T("   ::   Current elements number: %i \n"), a + 1);
-		prog->Progress(a+1, maxscene->NumChildren());
+		prog->Progress(a + 1, maxscene->NumChildren());
 
 		Object*	obj;
 		ObjectState os = currNode->EvalWorldState(GetCOREInterface()->GetTime());
@@ -594,218 +361,13 @@ int LuxMaxInternal::Render(
 		}
 
 		case GEOMOBJECT_CLASS_ID:
-
+		{
 			if (doExport)
 			{
-				Object *pObj = currNode->GetObjectRef();
-				Matrix3 nodeInitTM;
-				Point4 nodeRotation;
-				TriObject *p_triobj = NULL;
-
-				BOOL fConvertedToTriObject = obj->CanConvertToType(triObjectClassID) && (p_triobj = (TriObject*)obj->ConvertToType(0, triObjectClassID)) != NULL;
-
-				if (!fConvertedToTriObject)
-				{
-					mprintf(L"Debug: Did not triangulate object : %s\n", currNode->GetName());
-					break;
-				}
-				else
-				{
-					mprintf(L"Info: Creating mesh for object : %s\n", currNode->GetName());
-					const wchar_t *objName = L"";
-					std::string tmpName = lxmUtils.ToNarrow(currNode->GetName());
-					lxmUtils.removeUnwatedChars(tmpName);
-					std::wstring replacedObjName = std::wstring(tmpName.begin(), tmpName.end());
-					objName = replacedObjName.c_str();
-
-					::Mesh *p_trimesh = &p_triobj->mesh;
-
-					if (p_trimesh->getNumFaces() < 1)
-					{
-						mprintf(L"Debug: Did not triangulate object : %s, numfaces < 1\n", currNode->GetName());
-						break;
-					}
-					p_trimesh->checkNormals(true);
-					p_trimesh->buildNormals();
-
-					int numUvs = p_trimesh->getNumTVerts();
-					int rawcount = p_trimesh->numFaces * 3;
-					int optcount = 0;
-
-					vertexPtr rawverts = CollectRawVerts(*p_trimesh, rawcount);
-					vertexPtr optverts = CreateOptimizeVertexList(rawverts, rawcount, optcount);
-					unsigned int* indices = CreateOptimizeFaceIndices(rawverts, rawcount, optverts, optcount);
-					int numTriangles = p_trimesh->getNumFaces();
-
-					Point *p = Scene::AllocVerticesBuffer(optcount);
-					Triangle *vi = Scene::AllocTrianglesBuffer(numTriangles);
-					Normal *n = new Normal[optcount];
-					UV *uv = new UV[optcount];
-
-					for (int vert = 0; vert < optcount; vert++)
-					{
-						p[vert] = Point(optverts[vert].p);
-					}
-
-					for (int norm = 0; norm < optcount; norm++)
-					{
-						::Point3 tmpNorm = optverts[norm].n;
-						n[norm].x = tmpNorm.x;
-						n[norm].y = tmpNorm.y;
-						n[norm].z = tmpNorm.z;
-					}
-
-					for (int i = 0, fi = 0; fi < numTriangles; i += 3, ++fi)
-					{
-						vi[fi] = Triangle(
-							int(indices[i]),
-							int(indices[i + 1]),
-							int(indices[i + 2]));
-					}
-
-					if (numUvs > 0)
-					{
-						//uv = new UV[numUvs];
-						for (int u = 0; u < optcount; u++)
-						{
-							uv[u].u = optverts[u].uv.x;
-							uv[u].v = optverts[u].uv.y;
-						}
-					}
-
-					if (numUvs < 1) {
-						// Define the object - without UV
-						scene->DefineMesh(lxmUtils.ToNarrow(objName), optcount, numTriangles, p, vi, n, NULL, NULL, NULL);
-					}
-					else
-					{
-						// Define the object - with UV
-						scene->DefineMesh(lxmUtils.ToNarrow(objName), optcount, numTriangles, p, vi, n, NULL, NULL, NULL);
-					}
-
-					delete[] rawverts;
-					delete[] optverts;
-					delete[] indices;
-					delete[] uv;
-
-					p = NULL;
-					vi = NULL;
-					n = NULL;
-					uv = NULL;
-
-					Properties props;
-					std::string objString;
-
-					objString = "scene.objects.";
-					objString.append(lxmUtils.ToNarrow(objName));
-					objString.append(".ply = ");
-					objString.append(lxmUtils.ToNarrow(objName));
-					objString.append("\n");
-					props.SetFromString(objString);
-					objString = "";
-
-					Mtl *objmat = NULL;
-
-					if (currNode->GetMtl() == NULL)
-					{
-						objString.append("scene.materials.undefined");
-						objString.append(".type");
-
-						scene->Parse(
-							Property(objString)("matte") <<
-							Property("")("")
-							);
-						objString = "";
-
-						::std::string tmpMatStr;
-						tmpMatStr.append("scene.materials.undefined.kd");
-						mprintf(L"Creating fallback material for undefined material.\n");
-						scene->Parse(
-							Property(tmpMatStr)(float(0.5), float(0.5), float(0.5)) <<
-							Property("")("")
-							);
-						tmpMatStr = "";
-
-						objString = "";
-						objString.append("scene.objects.");
-						objString.append(lxmUtils.ToNarrow(objName));
-						objString.append(".material = ");
-						objString.append("undefined");
-						objString.append("\n");
-						props.SetFromString(objString);
-						scene->Parse(props);
-						objString = "";
-
-					}
-					else
-					{
-						const wchar_t *matName = L"";
-						matName = currNode->GetMtl()->GetName();
-						std::string tmpMatName = lxmUtils.ToNarrow(matName);
-						lxmUtils.removeUnwatedChars(tmpMatName);
-						std::wstring replacedMaterialName = std::wstring(tmpMatName.begin(), tmpMatName.end());
-						matName = replacedMaterialName.c_str();
-
-						objmat = currNode->GetMtl();
-						int numsubs = 0;
-						numsubs = objmat->NumSubMtls();
-						if (numsubs < 1)
-						{
-							numsubs = 1;
-						}
-						for (int f = 0; f < numsubs; ++f)
-						{
-							if (lxmMaterials.isSupportedMaterial(objmat))
-							{
-								lxmMaterials.exportMaterial(objmat, scene);
-							}
-							else
-							{
-								objString.append("scene.materials.");
-								objString.append(lxmUtils.ToNarrow(matName));
-								objString.append(".type");
-
-								scene->Parse(
-									Property(objString)("matte") <<
-									Property("")("")
-									);
-								objString = "";
-
-								::std::string tmpMatStr;
-								tmpMatStr.append("scene.materials.");
-								tmpMatStr.append(lxmUtils.ToNarrow(matName));
-								tmpMatStr.append(".kd");
-								mprintf(L"Creating fallback material for unsupported material: %s\n", matName);
-								scene->Parse(
-									Property(tmpMatStr)(float(0.5), float(0.5), float(0.5)) <<
-									Property("")("")
-									);
-								tmpMatStr = "";
-							}
-						}
-
-						objString = "";
-						objString.append("scene.objects.");
-						objString.append(lxmUtils.ToNarrow(objName));
-						objString.append(".material = ");
-						objString.append(lxmUtils.ToNarrow(matName));
-						objString.append("\n");
-						props.SetFromString(objString);
-						scene->Parse(props);
-						objString = "";
-					}
-
-					//Set the transformation matrix for the current mesh object.
-					//the getMaxNodeTransform function returns the numbers for the matrix.
-					//that is why we append it here.
-						objString.append("scene.objects.");
-						objString.append(lxmUtils.ToNarrow(objName));
-						objString.append(".transformation = ");
-						objString.append(lxmUtils.getMaxNodeTransform(currNode));
-						props.SetFromString(objString);
-						scene->Parse(props);
-				}
+				lxmMesh.createMesh(currNode, *scene);
 			}
+			break;
+		}
 		}
 	}
 
@@ -841,30 +403,30 @@ int LuxMaxInternal::Render(
 
 	switch (rendertype)
 	{
-		case 0:
-			tmprendtype = "BIASPATHCPU";
-			break;
-		case 1:
-			tmprendtype = "BIASPATHOCL";
-			break;
-		case 2:
-			tmprendtype = "BIDIRCPU";
-			break;
-		case 3:
-			tmprendtype = "BIDIRVMCPU";
-			break;
-		case 4:
-			tmprendtype = "PATHCPU";
-			break;
-		case 5:
-			tmprendtype = "PATHOCL";
-			break;
-		case 6:
-			tmprendtype = "RTBIASPATHOCL";
-			break;
-		case 7:
-			tmprendtype = "RTPATHOCL";
-			break;
+	case 0:
+		tmprendtype = "BIASPATHCPU";
+		break;
+	case 1:
+		tmprendtype = "BIASPATHOCL";
+		break;
+	case 2:
+		tmprendtype = "BIDIRCPU";
+		break;
+	case 3:
+		tmprendtype = "BIDIRVMCPU";
+		break;
+	case 4:
+		tmprendtype = "PATHCPU";
+		break;
+	case 5:
+		tmprendtype = "PATHOCL";
+		break;
+	case 6:
+		tmprendtype = "RTBIASPATHOCL";
+		break;
+	case 7:
+		tmprendtype = "RTPATHOCL";
+		break;
 	}
 	mprintf(_T("\n Renderengine type is %i \n"), rendertype);
 

@@ -18,22 +18,18 @@
 
 #pragma once
 #include <algorithm>
+#include <max.h>
 using std::max;
 using std::min;
-#include <maxapi.h>
-
 #include <luxcore/luxcore.h>
+#include <luxrays\luxrays.h>
 
-
-class LuxMaxMaterials
+class LuxMaxMesh
 {
 public:
-	LuxMaxMaterials();
-	~LuxMaxMaterials();
-	void exportMaterial(Mtl* mat, luxcore::Scene &scene);
-	//void exportMaterial(Mtl* mat, luxcore::Scene &scene);
-	Point3 getMaterialDiffuseColor(::Mtl* mat);
-	bool isSupportedMaterial(::Mtl* mat);
-	
+	LuxMaxMesh();
+	~LuxMaxMesh();
+	void createMesh(INode *node, luxcore::Scene &scene);
+
 };
 

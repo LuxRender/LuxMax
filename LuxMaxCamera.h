@@ -15,25 +15,17 @@
 * See the License for the specific language governing permissions and     *
 * limitations under the License.                                          *
 ***************************************************************************/
-
 #pragma once
 #include <algorithm>
-using std::max;
-using std::min;
-#include <maxapi.h>
-
+//using std::max;
+//using std::min;
 #include <luxcore/luxcore.h>
+#include <luxrays\luxrays.h>
 
-
-class LuxMaxMaterials
+class LuxMaxCamera
 {
 public:
-	LuxMaxMaterials();
-	~LuxMaxMaterials();
-	void exportMaterial(Mtl* mat, luxcore::Scene &scene);
-	//void exportMaterial(Mtl* mat, luxcore::Scene &scene);
-	Point3 getMaterialDiffuseColor(::Mtl* mat);
-	bool isSupportedMaterial(::Mtl* mat);
-	
+	LuxMaxCamera();
+	~LuxMaxCamera();
 };
 
