@@ -102,7 +102,7 @@ Point3 LuxMaxMaterials::getMaterialDiffuseColor(::Mtl* mat)
 	return diffcolor;
 }
 
-void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene *scene)
+void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 {
 	const wchar_t *matName = L"";
 	matName = mat->GetName();
@@ -148,7 +148,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene *scene)
 			tmpmat.append(currmat + ".type = metal2");
 			tmpmat.append("\n");
 			prop.SetFromString(tmpmat);
-			scene->Parse(prop);
+			scene.Parse(prop);
 		}
 
 		//Glass - Clear
@@ -170,13 +170,13 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene *scene)
 			tmpmat.append("\n");
 
 			prop.SetFromString(tmpmat);
-			scene->Parse(prop);
+			scene.Parse(prop);
 		}
 		else if ((lmutil->getstring(matType) == "Mirror"))
 		{
 			//metal2
 			OutputDebugStringW(_T("\nCreating Mirror material.\n"));
-			scene->Parse(
+			scene.Parse(
 				luxrays::Property(objString)("mirror") <<
 				luxrays::Property("")("")
 				);
@@ -184,7 +184,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene *scene)
 		else
 		{
 			OutputDebugStringW(_T("\nCreating fallback architectural material for unsupported template.\n"));
-			scene->Parse(
+			scene.Parse(
 				luxrays::Property(objString)("matte") <<
 				luxrays::Property("")("")
 				);
@@ -193,7 +193,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene *scene)
 	else if (mat->ClassID() == LUXCORE_MATTELIGHT_CLASSID)
 	{
 		mprintf(_T("\n Creating Emission material %i \n"));
-		scene->Parse(
+		scene.Parse(
 			luxrays::Property(objString)("matte") <<
 			luxrays::Property("")("")
 			);
@@ -206,7 +206,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene *scene)
 		tmpMatStr.append(lmutil->ToNarrow(matName));
 		tmpMatStr.append(".emission");
 
-		scene->Parse(
+		scene.Parse(
 			luxrays::Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
 			luxrays::Property("")("")
 			);
@@ -215,7 +215,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene *scene)
 	else if (mat->ClassID() == LUXCORE_CHEKER_CLASSID)
 	{
 
-		scene->Parse(
+		scene.Parse(
 			luxrays::Property(objString)("matte") <<
 			luxrays::Property("")("")
 			);
@@ -225,7 +225,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene *scene)
 		scene.textures.check.texture2 = 0.7 0.7 0.0
 		scene.textures.check.mapping.uvscale = 16 -16*/
 		mprintf(_T("\n Creating Cheker material %i \n"));
-		scene->Parse(
+		scene.Parse(
 			luxrays::Property("scene.textures.check.type")("checkerboard2d") <<
 			luxrays::Property("scene.textures.check.texture1")("0.7 0.0 0.0") <<
 			luxrays::Property("scene.textures.check.texture2")("0.7 0.7 0.0") <<
@@ -300,7 +300,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene *scene)
 	else	//Parse as matte material.
 	{
 		OutputDebugStringW(_T("\nCreating fallback material.\n"));
-		scene->Parse(
+		scene.Parse(
 			luxrays::Property(objString)("matte") <<
 			luxrays::Property("")("")
 			);
@@ -313,7 +313,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene *scene)
 		tmpMatStr.append(lmutil->ToNarrow(matName));
 		tmpMatStr.append(".kd");
 		//mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
-		scene->Parse(
+		scene.Parse(
 			luxrays::Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
 			luxrays::Property("")("")
 			);

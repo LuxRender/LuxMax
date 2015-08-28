@@ -125,6 +125,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LuxMaxCamera.cpp" />
     <ClCompile Include="LuxMaxInternal.cpp" />
     <ClCompile Include="LuxMaxInterlanpch.cpp">
       <WholeProgramOptimization>false</WholeProgramOptimization>
@@ -148,6 +149,7 @@
     <ClCompile Include="LuxMaxInternaldlg.cpp" />
     <ClCompile Include="LuxMaxLights.cpp" />
     <ClCompile Include="LuxMaxMaterials.cpp" />
+    <ClCompile Include="LuxMaxMesh.cpp" />
     <ClCompile Include="LuxMaxUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -158,9 +160,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="luxlight.h" />
+    <ClInclude Include="LuxMaxCamera.h" />
     <ClInclude Include="LuxMaxInternal.h" />
     <ClInclude Include="LuxMaxLights.h" />
     <ClInclude Include="LuxMaxMaterials.h" />
+    <ClInclude Include="LuxMaxMesh.h" />
     <ClInclude Include="LuxMaxUtils.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="LuxMaxInternalpch.h" />

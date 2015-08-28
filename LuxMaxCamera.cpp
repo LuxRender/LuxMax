@@ -15,25 +15,33 @@
 * See the License for the specific language governing permissions and     *
 * limitations under the License.                                          *
 ***************************************************************************/
+//using std::max;
+//using std::min;
 
-#pragma once
+#include "LuxMaxCamera.h"
 #include <algorithm>
-using std::max;
-using std::min;
+#include "max.h"
+#include "LuxMaxUtils.h"
+#include <stdio.h>
+#include <string>
 #include <maxapi.h>
-
+#include <iparamb2.h>
+#include <iparamb.h>
+#include <boost/filesystem/operations.hpp>
+#include <boost/foreach.hpp>
+#include <boost/assign.hpp>
+#include <boost/format.hpp>
+#include <maxscript\maxscript.h>
 #include <luxcore/luxcore.h>
+#include <luxrays\luxrays.h>
 
+//LuxMaxUtils *lmutil;
 
-class LuxMaxMaterials
+LuxMaxCamera::LuxMaxCamera()
 {
-public:
-	LuxMaxMaterials();
-	~LuxMaxMaterials();
-	void exportMaterial(Mtl* mat, luxcore::Scene &scene);
-	//void exportMaterial(Mtl* mat, luxcore::Scene &scene);
-	Point3 getMaterialDiffuseColor(::Mtl* mat);
-	bool isSupportedMaterial(::Mtl* mat);
-	
-};
+}
 
+
+LuxMaxCamera::~LuxMaxCamera()
+{
+}
