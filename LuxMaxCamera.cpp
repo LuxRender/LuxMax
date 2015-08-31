@@ -52,19 +52,9 @@ LuxMaxCamera::~LuxMaxCamera()
 }
 
 
-bool LuxMaxCamera::exportCamera(INode* Camera, float lensRadius, luxcore::Scene &scene)
+bool LuxMaxCamera::exportCamera(float lensRadius, luxcore::Scene &scene)
 {
-	ObjectState os = Camera->EvalWorldState(GetCOREInterface()->GetTime());
-	Object*	obj;
-	obj = os.obj;
-	CameraObject*   cameraPtr = (CameraObject *)os.obj;
 	INode* camNode = GetCOREInterface9()->GetActiveViewExp().GetViewCamera();
-
-	if (cameraPtr->ClassID() == MAX2016_PHYSICAL_CAMERA)
-	{
-		MessageBox(0, L"3DSmax 2016 Physical camera not supported, please render through 'standard' camera.", L"Error!", MB_OK);
-		return false;
-	}
 
 	if (camNode == NULL)
 	{
@@ -73,6 +63,16 @@ bool LuxMaxCamera::exportCamera(INode* Camera, float lensRadius, luxcore::Scene 
 	}
 	else
 	{
+		ObjectState os = camNode->EvalWorldState(GetCOREInterface()->GetTime());
+		Object*	obj;
+		obj = os.obj;
+		CameraObject*   cameraPtr = (CameraObject *)os.obj;
+		if (cameraPtr->ClassID() == MAX2016_PHYSICAL_CAMERA)
+		{
+			MessageBox(0, L"3DSmax 2016 Physical camera not supported, please render through 'standard' camera.", L"Error!", MB_OK);
+			return false;
+		}
+
 		::Point3 camTrans = camNode->GetNodeTM(GetCOREInterface()->GetTime()).GetTrans();
 		Interface* g_ip = GetCOREInterface();
 		INode* NewCam = camNode;
