@@ -17,6 +17,7 @@
 ***************************************************************************/
 #pragma once
 #include <algorithm>
+#include "max.h"
 //using std::max;
 //using std::min;
 #include <luxcore/luxcore.h>
@@ -27,5 +28,6 @@ class LuxMaxCamera
 public:
 	LuxMaxCamera();
 	~LuxMaxCamera();
+	bool exportCamera(INode* Camera, float lensRadius, luxcore::Scene &scene);
 };
 

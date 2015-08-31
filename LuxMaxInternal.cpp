@@ -28,11 +28,13 @@
 #include "LuxMaxInternalpch.h"
 #include "resource.h"
 #include "LuxMaxInternal.h"
-//#include "luxlight.h"
+
+#include "LuxMaxCamera.h"
 #include "LuxMaxUtils.h"
 #include "LuxMaxMaterials.h"
 #include "LuxMaxLights.h"
 #include "LuxMaxMesh.h"
+
 
 #include <maxscript\maxscript.h>
 #include <render.h>
@@ -60,10 +62,12 @@ namespace luxcore
 #include <locale>
 #include <sstream>
 
+LuxMaxCamera lxmCamera;
 LuxMaxLights lxmLights;
 LuxMaxMaterials lxmMaterials;
 LuxMaxUtils lxmUtils;
 LuxMaxMesh lxmMesh;
+
 
 #pragma warning (push)
 #pragma warning( disable:4002)
@@ -313,49 +317,10 @@ int LuxMaxInternal::Render(
 
 		case CAMERA_CLASS_ID:
 		{
-			//::Point3 camTrans = currNode->GetNodeTM(t).GetTrans();
-			CameraObject*   cameraPtr = (CameraObject *)os.obj;
-			INode* camNode = GetCOREInterface9()->GetActiveViewExp().GetViewCamera();
-
-			if (cameraPtr->ClassID() == MAX2016_PHYSICAL_CAMERA)
+			//In the camera 'export' function we check for supported camera, it returns false if something is not right.
+			if (!lxmCamera.exportCamera(currNode, (float)_wtof(LensRadiusstr), *scene))
 			{
-				MessageBox(0, L"3DSmax 2016 Physical camera not supported, please render through 'standard' camera.", L"Error!", MB_OK);
 				return false;
-				break;
-			}
-
-			if (camNode == NULL)
-			{
-				MessageBox(0, L"Set active view to a target camera and render again.", L"Error!", MB_OK);
-				return false;
-				break;
-			}
-			else
-			{
-				::Point3 camTrans = camNode->GetNodeTM(GetCOREInterface()->GetTime()).GetTrans();
-				Interface* g_ip = GetCOREInterface();
-				INode* NewCam = camNode;
-				::Matrix3 targetPos;
-				NewCam->GetTargetTM(t, targetPos);
-
-				float FOV = cameraPtr->GetFOV(t, FOREVER) * 180 / PI;
-				float aspectratio = GetCOREInterface11()->GetImageAspRatio();
-				if (aspectratio < 1)
-					FOV = 2.0f * ((180 / PI) *(atan(tan((PI / 180)*(FOV / 2.0f)) / aspectratio)));
-
-				float LensRadius = (float)_wtof(LensRadiusstr);
-				//float blur = camNode->GetImageBlurMultiplier(t);
-				mprintf(L"Rendering with camera: : %s\n", camNode->GetName());
-				scene->Parse(
-					Property("scene.camera.lookat.orig")(camTrans.x, camTrans.y, camTrans.z) <<
-					Property("scene.camera.lookat.target")(targetPos.GetTrans().x, targetPos.GetTrans().y, targetPos.GetTrans().z) <<
-					Property("scene.camera.fieldofview")(FOV) <<
-					Property("scene.camera.lensradius")(LensRadius) <<
-					Property("scene.camera.focaldistance")(cameraPtr->GetTDist(t, FOREVER)) <<
-					Property("scene.camera.shutteropen")(0.0f) <<
-					Property("scene.camera.shutterclose")(1.615f)
-					);
-				break;
 			}
 			break;
 		}
