@@ -28,6 +28,6 @@ class LuxMaxCamera
 public:
 	LuxMaxCamera();
 	~LuxMaxCamera();
-	bool exportCamera(INode* Camera, float lensRadius, luxcore::Scene &scene);
+	bool exportCamera(float lensRadius, luxcore::Scene &scene);
 };
 

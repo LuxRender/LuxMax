@@ -237,9 +237,16 @@ int LuxMaxInternal::Render(
 	//Scene *scene = new Scene();
 	scene = new Scene();
 
+	//In the camera 'export' function we check for supported camera, it returns false if something is not right.
+	if (!lxmCamera.exportCamera((float)_wtof(LensRadiusstr), *scene))
+	{
+		return false;
+	}
+
+
+	
 	//Export all meshes
 	INode* maxscene = GetCOREInterface7()->GetRootNode();
-
 	for (int a = 0; maxscene->NumChildren() > a; a++)
 	{
 		INode* currNode = maxscene->GetChildNode(a);
@@ -255,6 +262,8 @@ int LuxMaxInternal::Render(
 		ObjectState os = currNode->EvalWorldState(GetCOREInterface()->GetTime());
 		obj = os.obj;
 		bool doExport = true;
+
+		
 
 		switch (os.obj->SuperClassID())
 		{
@@ -315,15 +324,10 @@ int LuxMaxInternal::Render(
 			break;
 		}
 
-		case CAMERA_CLASS_ID:
+		/*case CAMERA_CLASS_ID:
 		{
-			//In the camera 'export' function we check for supported camera, it returns false if something is not right.
-			if (!lxmCamera.exportCamera(currNode, (float)_wtof(LensRadiusstr), *scene))
-			{
-				return false;
-			}
 			break;
-		}
+		}*/
 
 		case GEOMOBJECT_CLASS_ID:
 		{
