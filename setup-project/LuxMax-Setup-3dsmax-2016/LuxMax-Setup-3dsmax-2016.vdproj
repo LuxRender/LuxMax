@@ -3,7 +3,7 @@
 "VSVersion" = "3:800"
 "ProjectType" = "8:{978C614F-708E-4E1A-B201-565925725DBA}"
 "IsWebType" = "8:FALSE"
-"ProjectName" = "8:LuxMax-Internal-Setup 3Dsmax 2015"
+"ProjectName" = "8:LuxMax-Internal-Setup 3Dsmax 2016"
 "LanguageId" = "3:1033"
 "CodePage" = "3:1252"
 "UILanguageId" = "3:1033"
@@ -107,7 +107,7 @@
         "DisplayName" = "8:Release"
         "IsDebugOnly" = "11:FALSE"
         "IsReleaseOnly" = "11:TRUE"
-        "OutputFilename" = "8:Release\\3dsmax2015\\LuxMax-Setup-3dsmax2015x64.msi"
+        "OutputFilename" = "8:Release\\3dsmax2016\\LuxMax-Setup-3dsmax2016x64.msi"
         "PackageFilesAs" = "3:2"
         "PackageFileSize" = "3:-2147483648"
         "CabType" = "3:1"
@@ -374,7 +374,7 @@
         {
             "{994432C3-9487-495D-8656-3E829A8DBDDE}:_29F5F5C665FD416AA8DD6E21AC3A9C85"
             {
-            "DefaultLocation" = "8:[ProgramFiles64Folder]\\Autodesk\\3ds Max 2015\\scripts\\Startup"
+            "DefaultLocation" = "8:[ProgramFiles64Folder]\\Autodesk\\3ds Max 2016\\scripts\\Startup"
             "Name" = "8:Shader"
             "AlwaysCreate" = "11:FALSE"
             "Condition" = "8:"
@@ -386,7 +386,7 @@
             }
             "{994432C3-9487-495D-8656-3E829A8DBDDE}:_70C818EE5231418BB672C1FC81C89B21"
             {
-            "DefaultLocation" = "8:[ProgramFiles64Folder]\\Autodesk\\3ds Max 2015"
+            "DefaultLocation" = "8:[ProgramFiles64Folder]\\Autodesk\\3ds Max 2016"
             "Name" = "8:Dll Library"
             "AlwaysCreate" = "11:FALSE"
             "Condition" = "8:"
@@ -398,7 +398,7 @@
             }
             "{3C67513D-01DD-4637-8A68-80971EB9504F}:_7F508D6072B741B58F71465182019C8B"
             {
-            "DefaultLocation" = "8:[ProgramFiles64Folder]\\Autodesk\\3ds Max 2015\\plugins"
+            "DefaultLocation" = "8:[ProgramFiles64Folder]\\Autodesk\\3ds Max 2016\\plugins"
             "Name" = "8:#1925"
             "AlwaysCreate" = "11:FALSE"
             "Condition" = "8:"
@@ -424,8 +424,8 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:LuxMax internal v0.0.0.2b"
-        "ProductCode" = "8:{E52C4E66-61DF-40EC-B8D4-2E281EDE652C}"
-        "PackageCode" = "8:{7BF5202F-25BD-4040-813D-F8F5964838EA}"
+        "ProductCode" = "8:{D8C0B1C2-145F-4E8B-A193-EFE9DADBFEFB}"
+        "PackageCode" = "8:{5398D4A2-2889-4E7F-B971-AC7AF7DE2E2C}"
         "UpgradeCode" = "8:{D48A9DE4-614A-4C72-8F3D-30C689D63554}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
