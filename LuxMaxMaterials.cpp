@@ -22,7 +22,10 @@ using std::min;
 
 #include "LuxMaxMaterials.h"
 #include "LuxMaxUtils.h"
-
+#include <bitmap.h>
+#include <pbbitmap.h>
+#include <map>
+#include <IGame\IGameMaterial.h>
 #include <stdio.h>
 #include <string>
 #include <maxapi.h>
@@ -31,12 +34,13 @@ using std::min;
 #include <imaterial.h>
 #include <iparamb2.h>
 #include <iparamb.h>
-
+#include "path.h"
+//#include "AssetType.h"
+#include "IFileResolutionManager.h"
 #include <boost/filesystem/operations.hpp>
 #include <boost/foreach.hpp>
 #include <boost/assign.hpp>
 #include <boost/format.hpp>
-
 #include <maxscript\maxscript.h>
 
 
@@ -73,6 +77,11 @@ LuxMaxMaterials::~LuxMaxMaterials()
 {
 }
 
+//std::string LuxMaxMaterials::getMaterialDiffuseTexturePath(::Mtl* mat)
+//{
+
+//}
+
 Point3 LuxMaxMaterials::getMaterialDiffuseColor(::Mtl* mat)
 {
 	std::string objString;
@@ -102,6 +111,54 @@ Point3 LuxMaxMaterials::getMaterialDiffuseColor(::Mtl* mat)
 	return diffcolor;
 }
 
+//void LuxMaxMaterials::defineTexture(BitmapTex* bmTex, luxcore::Scene &scene, std::string textureName)
+//{
+//	std::string texString = "";
+//	/*
+//	Type: imagemap
+//
+//	Property name 						Property type 	Default value 	Description
+//	scene.textures.<texture name>.type 	string 			"imagemap"   	type of texture
+//	scene.textures.<texture name>.file 	string 			"image.png" 	name of the image file
+//	scene.textures.<texture name>.gamma float			2.2				gamma correction value used in the image
+//	scene.textures.<texture name>.gain 	float 			1.0 			image values are multiplied by gain value
+//
+//		Example data:
+//		scene.textures.tex.type = imagemap
+//		scene.textures.tex.file = scenes / bump / map.png
+//		scene.textures.tex.gain = 0.6
+//		scene.textures.tex.mapping.uvscale = 16 - 16
+//	*/
+//
+//	// http://docs.autodesk.com/3DSMAX/16/ENU/3ds-Max-SDK-Programmer-Guide/files/GUID-50105419-69CD-4EF0-B96F-D59BBD46C743.htm
+//
+//	texString.append("scene.textures.");
+//	texString.append(textureName + "\n");
+//	
+//
+//	Texmap* tm = (BitmapTex*)bmTex;
+//	BitmapTex *bmt = (BitmapTex*)tm;
+//	BitmapInfo *btinfo = (BitmapInfo*)tm;
+//	//std::string str = getstring(tm->GetFullName());
+//	//mprintf(_T("\n Defining texture file named: %s \n", lmutil->getstring(btinfo->Filename())));
+//	
+//	IFileResolutionManager* pFRM = IFileResolutionManager::GetInstance();
+//	MaxSDK::Util::Path path(btinfo->Filename());
+//	if (pFRM->GetFullFilePath(path, MaxSDK::AssetManagement::kBitmapAsset))
+//	{
+//		// path now holds a fully qualified path
+//		texString.append("scene.textures." + textureName + ".file = " + path.GetCStr);
+//		mprintf(_T("\n Defining texture file path: %s \n", path.GetCStr));
+//	}
+//	else
+//	{
+//		// the bitmap file could not be found using 3ds Max asset
+//		// resolution rules. The value of path is left unchanged
+//	}
+//
+//	
+//}
+
 void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 {
 	const wchar_t *matName = L"";
@@ -110,7 +167,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 	lmutil->removeUnwatedChars(tmpMatName);
 	std::wstring replacedMaterialName = std::wstring(tmpMatName.begin(), tmpMatName.end());
 	matName = replacedMaterialName.c_str();
-
+	
 	//if (scene->IsMaterialDefined(ToNarrow(matName)) == false)
 	//{
 	std::string objString = "";
