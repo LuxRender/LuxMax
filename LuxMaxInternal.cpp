@@ -35,7 +35,6 @@
 #include "LuxMaxLights.h"
 #include "LuxMaxMesh.h"
 
-
 #include <maxscript\maxscript.h>
 #include <render.h>
 #include <point3.h>
@@ -67,7 +66,6 @@ LuxMaxLights lxmLights;
 LuxMaxMaterials lxmMaterials;
 LuxMaxUtils lxmUtils;
 LuxMaxMesh lxmMesh;
-
 
 #pragma warning (push)
 #pragma warning( disable:4002)
@@ -243,8 +241,6 @@ int LuxMaxInternal::Render(
 		return false;
 	}
 
-
-	
 	//Export all meshes
 	INode* maxscene = GetCOREInterface7()->GetRootNode();
 	for (int a = 0; maxscene->NumChildren() > a; a++)
@@ -262,8 +258,6 @@ int LuxMaxInternal::Render(
 		ObjectState os = currNode->EvalWorldState(GetCOREInterface()->GetTime());
 		obj = os.obj;
 		bool doExport = true;
-
-		
 
 		switch (os.obj->SuperClassID())
 		{
@@ -326,7 +320,7 @@ int LuxMaxInternal::Render(
 
 		/*case CAMERA_CLASS_ID:
 		{
-			break;
+		break;
 		}*/
 
 		case GEOMOBJECT_CLASS_ID:

@@ -32,6 +32,9 @@ public:
 	~LuxMaxMaterials();
 	void exportMaterial(Mtl* mat, luxcore::Scene &scene);
 	//void exportMaterial(Mtl* mat, luxcore::Scene &scene);
+	std::string LuxMaxMaterials::getMaterialDiffuseTexturePath(::Mtl* mat);
+
+	//void LuxMaxMaterials::defineTexture(BitmapTex* bmTex, luxcore::Scene &scene, std::string textureName);
 	Point3 getMaterialDiffuseColor(::Mtl* mat);
 	bool isSupportedMaterial(::Mtl* mat);
 	
