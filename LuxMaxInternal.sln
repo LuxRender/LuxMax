@@ -1,7 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LuxMaxInternal", "LuxMaxInternal.vcxproj", "{B4AA58F2-E1C5-4FB7-94E3-0C26E98DAA5B}"
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LuxMax_Internal", "LuxMaxInternal.vcxproj", "{B4AA58F2-E1C5-4FB7-94E3-0C26E98DAA5B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LRI_Matte", "Shaders\LRI_Matte\LRI_Matte.vcxproj", "{6671F0BA-6FB8-4F35-8392-0676D05113A8}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LRI_Light", "Shaders\LRI_Light\LRI_Light.vcxproj", "{D7573B13-71D3-473B-9ED4-6FDB7F667E59}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,6 +31,24 @@ Global
 		{B4AA58F2-E1C5-4FB7-94E3-0C26E98DAA5B}.Release|Win32.Build.0 = Release|Win32
 		{B4AA58F2-E1C5-4FB7-94E3-0C26E98DAA5B}.Release|x64.ActiveCfg = Release|x64
 		{B4AA58F2-E1C5-4FB7-94E3-0C26E98DAA5B}.Release|x64.Build.0 = Release|x64
+		{6671F0BA-6FB8-4F35-8392-0676D05113A8}.Debug|Win32.ActiveCfg = Debug|x64
+		{6671F0BA-6FB8-4F35-8392-0676D05113A8}.Debug|x64.ActiveCfg = Debug|x64
+		{6671F0BA-6FB8-4F35-8392-0676D05113A8}.Debug|x64.Build.0 = Debug|x64
+		{6671F0BA-6FB8-4F35-8392-0676D05113A8}.Hybrid|Win32.ActiveCfg = Hybrid|x64
+		{6671F0BA-6FB8-4F35-8392-0676D05113A8}.Hybrid|x64.ActiveCfg = Hybrid|x64
+		{6671F0BA-6FB8-4F35-8392-0676D05113A8}.Hybrid|x64.Build.0 = Hybrid|x64
+		{6671F0BA-6FB8-4F35-8392-0676D05113A8}.Release|Win32.ActiveCfg = Release|x64
+		{6671F0BA-6FB8-4F35-8392-0676D05113A8}.Release|x64.ActiveCfg = Release|x64
+		{6671F0BA-6FB8-4F35-8392-0676D05113A8}.Release|x64.Build.0 = Release|x64
+		{D7573B13-71D3-473B-9ED4-6FDB7F667E59}.Debug|Win32.ActiveCfg = Debug|x64
+		{D7573B13-71D3-473B-9ED4-6FDB7F667E59}.Debug|x64.ActiveCfg = Debug|x64
+		{D7573B13-71D3-473B-9ED4-6FDB7F667E59}.Debug|x64.Build.0 = Debug|x64
+		{D7573B13-71D3-473B-9ED4-6FDB7F667E59}.Hybrid|Win32.ActiveCfg = Hybrid|x64
+		{D7573B13-71D3-473B-9ED4-6FDB7F667E59}.Hybrid|x64.ActiveCfg = Hybrid|x64
+		{D7573B13-71D3-473B-9ED4-6FDB7F667E59}.Hybrid|x64.Build.0 = Hybrid|x64
+		{D7573B13-71D3-473B-9ED4-6FDB7F667E59}.Release|Win32.ActiveCfg = Release|x64
+		{D7573B13-71D3-473B-9ED4-6FDB7F667E59}.Release|x64.ActiveCfg = Release|x64
+		{D7573B13-71D3-473B-9ED4-6FDB7F667E59}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
