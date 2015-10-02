@@ -120,8 +120,8 @@ BEGIN
     GROUPBOX        "",-1,5,3,272,41
     LTEXT           "Lens radius :",-1,13,13,52,8
     EDITTEXT        IDC_CAMERA_DEPTH,62,10,46,14,ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "",IDC_ANGLE,"CustEdit",WS_TABSTOP,62,25,36,11
-    CONTROL         "",IDC_ANGLESPIN,"SpinnerControl",0x0,99,25,9,11
+    CONTROL         "",IDC_LENSRADIUS,"CustEdit",WS_TABSTOP,62,25,36,11
+    CONTROL         "",IDC_LENSRADIUS_SPIN,"SpinnerControl",0x0,99,25,9,11
 END
 
 

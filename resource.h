@@ -39,9 +39,11 @@
 #define IDC_CHECK_DEFUALT_LIGHT_DISABLE 1012
 #define IDC_CUSTOM1                     1013
 #define IDC_ANGLE                       1013
+#define IDC_LENSRADIUS                  1013
 #define IDC_CHECK_OVERRIDE_MATTERIALS   1014
 #define IDC_CUSTOM2                     1014
 #define IDC_ANGLESPIN                   1014
+#define IDC_LENSRADIUS_SPIN             1014
 #define IDC_VBINTERVAL                  1015
 #define IDC_CHECK1                      1016
 #define IDC_SOBOL_Depth                 1016
