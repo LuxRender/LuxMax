@@ -55,16 +55,13 @@ using namespace std;
 using namespace luxcore;
 using namespace luxrays;
 
-//using namespace luxcore;
-//using namespace luxrays;
-
-#define LUXCORE_MATTE_CLASSID Class_ID(0x98265f22, 0x2cf529dd)
 #define STANDARDMATERIAL_CLASSID Class_ID(2,0)
 #define ARCHITECTURAL_CLASSID Class_ID(332471230,1763586103)
 #define ARCHDESIGN_CLASSID Class_ID(1890604853, 1242969684)
-#define LUXCORE_MATTELIGHT_CLASSID Class_ID(0x32d61a4e, 0x6a3107d8)
 #define LUXCORE_CHEKER_CLASSID Class_ID(0x34e85fea, 0x855292c)
-#define LR_INTERNAL_MATTE_CLASSID Class_ID(334255,416532)
+#define LR_INTERNAL_MATTE_CLASSID Class_ID(0x31b54e60, 0x1de956e4)
+#define LR_INTERNAL_MATTELIGHT_CLASSID Class_ID(0x5d2f7ac1, 0x7dd93354)
+#define LR_INTERNAL_MAT_TEMPLATE_CLASSID Class_ID(0x64691d17, 0x288d50d9)
 
 LuxMaxUtils * lmutil;
 
@@ -86,22 +83,22 @@ Point3 LuxMaxMaterials::getMaterialDiffuseColor(::Mtl* mat)
 {
 	std::string objString;
 	::Point3 diffcolor;
+	Interval      ivalid;
 
 	if (mat->ClassID() == LR_INTERNAL_MATTE_CLASSID)
 	{
-		for (int i = 0, count = mat->NumParamBlocks(); i < count; ++i)
-		{
-			IParamBlock2 *pBlock = mat->GetParamBlock(i);
-			diffcolor = pBlock->GetPoint3(0, GetCOREInterface()->GetTime(), 0);
-		}
+		IParamBlock2 *pBlock = mat->GetParamBlock(0);
+		pBlock->GetValue(3, GetCOREInterface()->GetTime(), diffcolor, ivalid);
 	}
-	if (mat->ClassID() == LUXCORE_MATTELIGHT_CLASSID)
+	if (mat->ClassID() == LR_INTERNAL_MATTELIGHT_CLASSID)
 	{
-		for (int i = 0, count = mat->NumParamBlocks(); i < count; ++i)
-		{
-			IParamBlock2 *pBlock = mat->GetParamBlock(i);
-			diffcolor = pBlock->GetPoint3(0, GetCOREInterface()->GetTime(), 0);
-		}
+		IParamBlock2 *pBlock = mat->GetParamBlock(0);
+		pBlock->GetValue(3, GetCOREInterface()->GetTime(), diffcolor, ivalid);
+	}
+	if (mat->ClassID() == LR_INTERNAL_MAT_TEMPLATE_CLASSID)
+	{
+		IParamBlock2 *pBlock = mat->GetParamBlock(0);
+		pBlock->GetValue(3, GetCOREInterface()->GetTime(), diffcolor, ivalid);
 	}
 	if (mat->ClassID() == STANDARDMATERIAL_CLASSID || mat->ClassID() == ARCHITECTURAL_CLASSID)
 	{
@@ -247,7 +244,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 				);
 		}
 	}
-	else if (mat->ClassID() == LUXCORE_MATTELIGHT_CLASSID)
+	else if (mat->ClassID() == LR_INTERNAL_MATTELIGHT_CLASSID)
 	{
 		mprintf(_T("\n Creating Emission material %i \n"));
 		scene.Parse(
@@ -393,7 +390,7 @@ bool LuxMaxMaterials::isSupportedMaterial(::Mtl* mat)
 	{
 		return true;
 	}
-	else if (mat->ClassID() == LUXCORE_MATTELIGHT_CLASSID)
+	else if (mat->ClassID() == LR_INTERNAL_MATTELIGHT_CLASSID)
 	{
 		return true;
 	}

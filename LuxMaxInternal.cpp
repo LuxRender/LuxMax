@@ -85,31 +85,57 @@ int renderHeight = 0;
 
 Scene *scene;
 
-class LuxMaxInternalClassDesc :public ClassDesc {
+class LuxMaxInternalClassDesc :public ClassDesc2 {
 public:
-	int 			IsPublic() { return 1; }
-	void *			Create(BOOL loading) { return new LuxMaxInternal; }
-	const TCHAR *	ClassName() { return GetString(IDS_VRENDTITLE); }
-	SClass_ID		SuperClassID() { return RENDERER_CLASS_ID; }
-	Class_ID 		ClassID() { return REND_CLASS_ID; }
-	const TCHAR* 	Category() { return _T(""); }
-	void			ResetClassParams(BOOL fileReset) {}
+	virtual int 			IsPublic() { return 1; }
+	virtual void *			Create(BOOL loading) { return new LuxMaxInternal; }
+	virtual const TCHAR *	ClassName() { return GetString(IDS_VRENDTITLE); }
+	virtual SClass_ID		SuperClassID() { return RENDERER_CLASS_ID; }
+	virtual Class_ID 		ClassID() { return REND_CLASS_ID; }
+	virtual const TCHAR* 	Category() { return _T(""); }
+	virtual void			ResetClassParams(BOOL fileReset) {}
 };
 
-static LuxMaxInternalClassDesc srendCD;
 
-ClassDesc* GetRendDesc() {
+ClassDesc2* GetRendDesc() {
+	static LuxMaxInternalClassDesc srendCD;
 	return &srendCD;
 }
 
-RefResult LuxMaxInternal::NotifyRefChanged(
-	const Interval		&changeInt,
-	RefTargetHandle		 hTarget,
-	PartID				&partID,
-	RefMessage			 message,
-	BOOL				 propagate
-	)
+/*enum { lens_params };
+enum { lensradius_spin };
+
+/*const int MIN_SPIN = 0.0f;
+const int MAX_SPIN = 100.0f;*/
+/*
+
+static ParamBlockDesc2 DepthOfFieldblk(lens_params, _T("Simple Parameters"), 0, GetRendDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI, 1,
+	//rollout
+	IDD_DEPTH, IDS_DEPTH, 0, 0, NULL,
+	// params
+	lensradius_spin,		_T("spin"),			TYPE_FLOAT,		P_ANIMATABLE,	IDS_SPIN,
+		p_default,			0.1f,
+		p_range,			0.0f, 1000.0f,
+		p_ui,				TYPE_SPINNER,		EDITTYPE_FLOAT, IDC_LENSRADIUS, IDC_LENSRADIUS_SPIN, 0.01f,
+		p_end,
+	p_end
+	);*/
+
+RefResult LuxMaxInternal::NotifyRefChanged(	const Interval &changeInt, RefTargetHandle hTarget, PartID &partID,
+	RefMessage message,	BOOL propagate)
 {
+	/*switch (message)
+	{
+	case REFMSG_CHANGE:
+	{
+		if (hTarget == pblock)
+		{
+			ParamID changing_param = pblock->LastNotifyParamID();
+			DepthOfFieldblk.InvalidateUI(changing_param);
+		}
+	}
+		break;
+	}*/
 	return REF_SUCCEED;
 }
 
@@ -517,4 +543,70 @@ IOResult LuxMaxInternal::Load(ILoad *iload) {
 			return res;
 	}
 	return IO_OK;
+}
+
+//===========================================================================
+//
+// Class LuxIntegratedParams : public RenderGlobalContext
+//
+//===========================================================================
+
+//***************************************************************************
+// Initialize our custom options.
+//***************************************************************************
+
+LuxRenderParams::LuxRenderParams()
+{
+	//SetDefaults();
+
+	/*envMap = NULL;
+	atmos = NULL;
+	rendType = RENDTYPE_NORMAL;
+	nMinx = 0;
+	nMiny = 0;
+	nMaxx = 0;
+	nMaxy = 0;
+	nNumDefLights = 0;
+	nRegxmin = 0;
+	nRegxmax = 0;
+	nRegymin = 0;
+	nRegymax = 0;
+	//scrDUV = Point2(0.0f, 0.0f);
+	//pDefaultLights = NULL;
+	//pFrp = NULL;
+	bVideoColorCheck = 0;
+	bForce2Sided = FALSE;
+	bRenderHidden = FALSE;
+	bSuperBlack = FALSE;
+	bRenderFields = FALSE;
+	bNetRender = FALSE;
+
+	renderer = NULL;
+	projType = PROJ_PERSPECTIVE;
+	devWidth = 0;
+	devHeight = 0;
+	xscale = 0;
+	yscale = 0;
+	xc = 0;
+	yc = 0;
+	antialias = FALSE;
+	nearRange = 0;
+	farRange = 0;
+	devAspect = 0;
+	frameDur = 0;
+	time = 0;
+	wireMode = FALSE;
+	inMtlEdit = FALSE;
+	fieldRender = FALSE;
+	first_field = FALSE;
+	field_order = FALSE;
+	objMotBlur = FALSE;
+	nBlurFrames = 0;*/
+}
+
+void LuxRenderParams::SetDefaults()
+{
+	nMaxDepth = 0;
+	//nAntiAliasLevel = 0x00;
+	//bReflectEnv = FALSE;
 }

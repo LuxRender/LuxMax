@@ -24,6 +24,9 @@
 #include <sstream>
 #include <string>
 
+extern HINSTANCE hInstance;
+static INT_PTR CALLBACK LuxMaxInternalParamDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 class LuxMaxInternalParamDlg : public RendParamDlg {
 public:
 	LuxMaxInternal *rend;
@@ -32,6 +35,7 @@ public:
 	//HWND hDlg;
 	BOOL prog;
 	HFONT hFont;
+	ISpinnerControl* depthSpinner;
 	TSTR workFileName;
 	//int workRenderType;
 	int halttime;
@@ -64,15 +68,29 @@ LuxMaxInternalParamDlg::~LuxMaxInternalParamDlg()
 INT_PTR LuxMaxInternalParamDlg::WndProc(
 	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	LuxMaxInternalParamDlg *dlg = DLGetWindowLongPtr<LuxMaxInternalParamDlg*>(hWnd);
+
 	switch (msg) {
 	case WM_INITDIALOG:
-		if (prog) InitProgDialog(hWnd);
-		else InitParamDialog(hWnd);
+		dlg = (LuxMaxInternalParamDlg*)lParam;
+		DLSetWindowLongPtr(hWnd, lParam);
+		if (dlg)
+		{
+			if (dlg->prog)
+				dlg->InitProgDialog(hWnd);
+			else
+				dlg->InitParamDialog(hWnd);
+		}
 		break;
 
 	case WM_DESTROY:
-		if (!prog) ReleaseControls();
+		if (!dlg->prog)
+		{
+			//ReleaseISpinner(dlg->depthSpinner);
+			ReleaseControls();
+		}
 		break;
+
 	default:
 		return FALSE;
 	}
@@ -312,6 +330,17 @@ void LuxMaxInternalParamDlg::InitParamDialog(HWND hWnd) {
 	defaultlightchk = rend->defaultlightchk;
 	defaultlightauto = rend->defaultlightauto;
 	vbinterval = rend->vbinterval;
+
+	// Setup the spinner controls for raytrace depth
+	depthSpinner = GetISpinner(GetDlgItem(hWnd, IDC_LENSRADIUS_SPIN));
+	//depthSpinner->LinkToEdit(GetDlgItem(hWnd,IDC_LENSRADIUS),EDITTYPE_FLOAT);
+	//depthSpinner2->SetLimits(0.0f, 10.0f, false);
+
+
+	//depthSpinner = GetISpinner(GetDlgItem(hWnd, IDC_LENSRADIUS_SPIN));
+	//depthSpinner->LinkToEdit(GetDlgItem(hWnd, IDC_LENSRADIUS), EDITTYPE_INT);
+	//depthSpinner->SetLimits(0, 25, TRUE);
+	//depthSpinner->SetValue(rend->LxRenderParams.lenser, FALSE);
 
 	SetDlgItemText(hWnd, IDC_FILENAME, workFileName);
 

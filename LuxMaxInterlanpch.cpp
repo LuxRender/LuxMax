@@ -18,6 +18,10 @@
 
 #include "LuxMaxInternalpch.h"
 #include "resource.h"
+#include <iparamb2.h>
+
+extern ClassDesc2* GetRendDesc();
+
 HINSTANCE hInstance;
 
 /** public functions **/
@@ -42,8 +46,7 @@ LibDescription() { return GetString(IDS_LIBDESCRIPTION); }
 /// MUST CHANGE THIS NUMBER WHEN ADD NEW CLASS
 __declspec( dllexport ) int LibNumberClasses() { return 1;}
 
-__declspec( dllexport ) ClassDesc*
-LibClassDesc(int i) {
+__declspec( dllexport ) ClassDesc* LibClassDesc(int i) {
 	switch(i) {
 		case 0: return GetRendDesc();
 		default: return 0;
