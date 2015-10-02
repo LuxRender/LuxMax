@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LRI_Matte", "Shaders\LRI_Ma
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LRI_Light", "Shaders\LRI_Light\LRI_Light.vcxproj", "{D7573B13-71D3-473B-9ED4-6FDB7F667E59}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LRI_Template", "Shaders\LRI_Template\LRI_Template.vcxproj", "{49CB98BD-0438-4F04-B308-ABAE7EB7B4F6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -49,6 +51,15 @@ Global
 		{D7573B13-71D3-473B-9ED4-6FDB7F667E59}.Release|Win32.ActiveCfg = Release|x64
 		{D7573B13-71D3-473B-9ED4-6FDB7F667E59}.Release|x64.ActiveCfg = Release|x64
 		{D7573B13-71D3-473B-9ED4-6FDB7F667E59}.Release|x64.Build.0 = Release|x64
+		{49CB98BD-0438-4F04-B308-ABAE7EB7B4F6}.Debug|Win32.ActiveCfg = Debug|x64
+		{49CB98BD-0438-4F04-B308-ABAE7EB7B4F6}.Debug|x64.ActiveCfg = Debug|x64
+		{49CB98BD-0438-4F04-B308-ABAE7EB7B4F6}.Debug|x64.Build.0 = Debug|x64
+		{49CB98BD-0438-4F04-B308-ABAE7EB7B4F6}.Hybrid|Win32.ActiveCfg = Hybrid|x64
+		{49CB98BD-0438-4F04-B308-ABAE7EB7B4F6}.Hybrid|x64.ActiveCfg = Hybrid|x64
+		{49CB98BD-0438-4F04-B308-ABAE7EB7B4F6}.Hybrid|x64.Build.0 = Hybrid|x64
+		{49CB98BD-0438-4F04-B308-ABAE7EB7B4F6}.Release|Win32.ActiveCfg = Release|x64
+		{49CB98BD-0438-4F04-B308-ABAE7EB7B4F6}.Release|x64.ActiveCfg = Release|x64
+		{49CB98BD-0438-4F04-B308-ABAE7EB7B4F6}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
