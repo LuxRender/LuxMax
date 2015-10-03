@@ -48,7 +48,7 @@
 #include <string>
 #include <string.h>
 #include <iostream>
-
+#include <IMaterialBrowserEntryInfo.h>
 namespace luxcore
 {
 #include <luxcore/luxcore.h>
@@ -250,17 +250,34 @@ int LuxMaxInternal::Render(
 	using namespace std;
 	using namespace luxrays;
 	using namespace luxcore;
-
+	RenderGlobalContext *rc;
 	const wchar_t *renderProgTitle = NULL;
 	defaultlightset = true;
-
+	
 	mprintf(_T("\nRendering with Luxcore version: %s,%s \n"), LUXCORE_VERSION_MAJOR, LUXCORE_VERSION_MINOR);
 	int frameNum = t / GetTicksPerFrame();
-	mprintf(_T("\nRendering Frame: %i \n"), frameNum);
+	//mprintf(_T("\nRendering Frame: %i \n"), frameNum);
+	//mprintf(_T("\nhwnd: %i \n"), hwnd);
+	//mprintf(_T("\nRendertype: %i \n"), rendertype);
+	//it returns 1377968 for material editor window
+	//mprintf(_T("\nwindow: %i \n"), tobm->GetWindow());
+	//tobm->GetInterfaceAt(0)->GetID()
+	//we need to get the material editor id..
+	/*if (tobm->GetWindow() == MTL_BROWSE_OPEN1)
+	{
 
+}*/
 	//Scene *scene = new Scene();
-	scene = new Scene();
 
+	if (rc->inMtlEdit)
+	{
+		mprintf(_T("\nRendering material preview.\n"));
+	}
+
+
+	scene = new Scene();
+	
+	
 	//In the camera 'export' function we check for supported camera, it returns false if something is not right.
 	if (!lxmCamera.exportCamera((float)_wtof(LensRadiusstr), *scene))
 	{
