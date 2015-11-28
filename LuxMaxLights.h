@@ -33,5 +33,6 @@ public:
 	luxrays::Properties exportSkyLight(INode* SkyLight);
 	luxrays::Properties exportDiright(INode* DirLight);
 	luxrays::Properties exportSpotLight(INode* SpotLight);
+	void exportDefaultSkyLight(luxcore::Scene *scene);
 };
 

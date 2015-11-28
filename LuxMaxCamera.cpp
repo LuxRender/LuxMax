@@ -46,11 +46,9 @@ LuxMaxCamera::LuxMaxCamera()
 {
 }
 
-
 LuxMaxCamera::~LuxMaxCamera()
 {
 }
-
 
 bool LuxMaxCamera::exportCamera(float lensRadius, luxcore::Scene &scene)
 {
