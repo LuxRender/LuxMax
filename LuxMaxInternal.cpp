@@ -82,8 +82,9 @@ bool defaultlightset = true;
 int rendertype = 4;
 int renderWidth = 0;
 int renderHeight = 0;
+bool renderingMaterialPreview = false;
+Scene *materialPreviewScene;// = new Scene();
 
-Scene *scene;
 
 class LuxMaxInternalClassDesc :public ClassDesc2 {
 public:
@@ -139,6 +140,148 @@ RefResult LuxMaxInternal::NotifyRefChanged(	const Interval &changeInt, RefTarget
 	return REF_SUCCEED;
 }
 
+static void CreateBox(Scene *scene, const string &objName, const string &meshName,
+	const string &matName, const bool enableUV, const BBox &bbox) {
+	Point *p = Scene::AllocVerticesBuffer(24);
+	// Bottom face
+	p[0] = Point(bbox.pMin.x, bbox.pMin.y, bbox.pMin.z);
+	p[1] = Point(bbox.pMin.x, bbox.pMax.y, bbox.pMin.z);
+	p[2] = Point(bbox.pMax.x, bbox.pMax.y, bbox.pMin.z);
+	p[3] = Point(bbox.pMax.x, bbox.pMin.y, bbox.pMin.z);
+	// Top face
+	p[4] = Point(bbox.pMin.x, bbox.pMin.y, bbox.pMax.z);
+	p[5] = Point(bbox.pMax.x, bbox.pMin.y, bbox.pMax.z);
+	p[6] = Point(bbox.pMax.x, bbox.pMax.y, bbox.pMax.z);
+	p[7] = Point(bbox.pMin.x, bbox.pMax.y, bbox.pMax.z);
+	// Side left
+	p[8] = Point(bbox.pMin.x, bbox.pMin.y, bbox.pMin.z);
+	p[9] = Point(bbox.pMin.x, bbox.pMin.y, bbox.pMax.z);
+	p[10] = Point(bbox.pMin.x, bbox.pMax.y, bbox.pMax.z);
+	p[11] = Point(bbox.pMin.x, bbox.pMax.y, bbox.pMin.z);
+	// Side right
+	p[12] = Point(bbox.pMax.x, bbox.pMin.y, bbox.pMin.z);
+	p[13] = Point(bbox.pMax.x, bbox.pMax.y, bbox.pMin.z);
+	p[14] = Point(bbox.pMax.x, bbox.pMax.y, bbox.pMax.z);
+	p[15] = Point(bbox.pMax.x, bbox.pMin.y, bbox.pMax.z);
+	// Side back
+	p[16] = Point(bbox.pMin.x, bbox.pMin.y, bbox.pMin.z);
+	p[17] = Point(bbox.pMax.x, bbox.pMin.y, bbox.pMin.z);
+	p[18] = Point(bbox.pMax.x, bbox.pMin.y, bbox.pMax.z);
+	p[19] = Point(bbox.pMin.x, bbox.pMin.y, bbox.pMax.z);
+	// Side front
+	p[20] = Point(bbox.pMin.x, bbox.pMax.y, bbox.pMin.z);
+	p[21] = Point(bbox.pMin.x, bbox.pMax.y, bbox.pMax.z);
+	p[22] = Point(bbox.pMax.x, bbox.pMax.y, bbox.pMax.z);
+	p[23] = Point(bbox.pMax.x, bbox.pMax.y, bbox.pMin.z);
+
+	Triangle *vi = Scene::AllocTrianglesBuffer(12);
+	// Bottom face
+	vi[0] = Triangle(0, 1, 2);
+	vi[1] = Triangle(2, 3, 0);
+	// Top face
+	vi[2] = Triangle(4, 5, 6);
+	vi[3] = Triangle(6, 7, 4);
+	// Side left
+	vi[4] = Triangle(8, 9, 10);
+	vi[5] = Triangle(10, 11, 8);
+	// Side right
+	vi[6] = Triangle(12, 13, 14);
+	vi[7] = Triangle(14, 15, 12);
+	// Side back
+	vi[8] = Triangle(16, 17, 18);
+	vi[9] = Triangle(18, 19, 16);
+	// Side back
+	vi[10] = Triangle(20, 21, 22);
+	vi[11] = Triangle(22, 23, 20);
+
+	// Define the Mesh
+	if (!enableUV) {
+		// Define the object
+		scene->DefineMesh(meshName, 24, 12, p, vi, NULL, NULL, NULL, NULL);
+	}
+	else {
+		UV *uv = new UV[24];
+		// Bottom face
+		uv[0] = UV(0.f, 0.f);
+		uv[1] = UV(1.f, 0.f);
+		uv[2] = UV(1.f, 1.f);
+		uv[3] = UV(0.f, 1.f);
+		// Top face
+		uv[4] = UV(0.f, 0.f);
+		uv[5] = UV(1.f, 0.f);
+		uv[6] = UV(1.f, 1.f);
+		uv[7] = UV(0.f, 1.f);
+		// Side left
+		uv[8] = UV(0.f, 0.f);
+		uv[9] = UV(1.f, 0.f);
+		uv[10] = UV(1.f, 1.f);
+		uv[11] = UV(0.f, 1.f);
+		// Side right
+		uv[12] = UV(0.f, 0.f);
+		uv[13] = UV(1.f, 0.f);
+		uv[14] = UV(1.f, 1.f);
+		uv[15] = UV(0.f, 1.f);
+		// Side back
+		uv[16] = UV(0.f, 0.f);
+		uv[17] = UV(1.f, 0.f);
+		uv[18] = UV(1.f, 1.f);
+		uv[19] = UV(0.f, 1.f);
+		// Side front
+		uv[20] = UV(0.f, 0.f);
+		uv[21] = UV(1.f, 0.f);
+		uv[22] = UV(1.f, 1.f);
+		uv[23] = UV(0.f, 1.f);
+
+		// Define the object
+		scene->DefineMesh(meshName, 24, 12, p, vi, NULL, uv, NULL, NULL);
+	}
+
+	// Add the object to the scene
+	Properties props;
+	props.SetFromString(
+		"scene.objects." + objName + ".shape = " + meshName + "\n"
+		"scene.objects." + objName + ".material = " + matName + "\n"
+		);
+	scene->Parse(props);
+}
+
+Mtl * matPrevNodesEnum(INode * inode)
+{
+	for (int c = 0; c < inode->NumberOfChildren(); c++)
+	{
+		Mtl * mat = matPrevNodesEnum(inode->GetChildNode(c));
+		if (mat)
+		{
+			//mprintf(_T("\nMaterial Name: %s\n", mat->GetName()));
+			lxmMaterials.exportMaterial(mat, *materialPreviewScene);
+			return mat;
+		}
+		
+	}
+
+	ObjectState ostate = inode->EvalWorldState(0);
+	if (ostate.obj->SuperClassID() == GEOMOBJECT_CLASS_ID)
+		if (ostate.obj->CanConvertToType(triObjectClassID))
+	{
+			Object * obj = ostate.obj;
+			if (!obj)
+				return NULL;
+			TriObject * tobj = (TriObject *)obj->ConvertToType(0, triObjectClassID);
+			if (!tobj)
+				return NULL;
+			::Mesh * cmesh = &(tobj->mesh);
+			
+			lxmMaterials.exportMaterial(inode->GetMtl(),*materialPreviewScene);
+			if (!cmesh)
+				return NULL;
+			
+			return inode->GetMtl();
+		}
+
+	return NULL;
+}
+
+
 ::Matrix3 camPos;
 
 int LuxMaxInternal::Open(
@@ -152,8 +295,21 @@ int LuxMaxInternal::Open(
 	RendProgressCallback* prog
 	)
 {
+
 	viewNode = vnode;
 	camPos = viewPar->affineTM;
+
+	if (rp.inMtlEdit)
+	{
+		renderingMaterialPreview = true;
+		materialPreviewScene = new Scene();
+
+		lxmMesh.createMesh(scene, *materialPreviewScene);
+	}
+	else
+	{
+		renderingMaterialPreview = false;
+	}
 
 	return 1;
 }
@@ -184,10 +340,10 @@ static void DoRendering(RenderSession *session, RendProgressCallback *prog, Bitm
 			break;
 
 		// Print some information about the rendering progress
-		sprintf(buf, "[Elapsed time: %3d/%dsec][Samples %4d/%d][Convergence %f%%][Avg. samples/sec % 3.2fM on %.1fK tris]",
-			int(elapsedTime), int(haltTime), pass, haltSpp, 100.f * convergence,
-			stats.Get("stats.renderengine.total.samplesec").Get<double>() / 1000000.0,
-			stats.Get("stats.dataset.trianglecount").Get<double>() / 1000.0);
+		//sprintf(buf, "[Elapsed time: %3d/%dsec][Samples %4d/%d][Convergence %f%%][Avg. samples/sec % 3.2fM on %.1fK tris]",
+//			int(elapsedTime), int(haltTime), pass, haltSpp, 100.f * convergence,
+	//		stats.Get("stats.renderengine.total.samplesec").Get<double>() / 1000000.0,
+		//	stats.Get("stats.dataset.trianglecount").Get<double>() / 1000.0);
 		mprintf(_T("Elapsed time %i\n"), int(elapsedTime));
 
 		state = (L"Rendering ....");
@@ -195,13 +351,13 @@ static void DoRendering(RenderSession *session, RendProgressCallback *prog, Bitm
 		bool renderabort = prog->Progress(elapsedTime + 1, haltTime);
 		if (renderabort == false)
 			break;
-
+		renderWidth = tobm->Width();
+		renderHeight = tobm->Height();
 		int pixelArraySize = renderWidth * renderHeight * 3;
 
 		pixels = new float[pixelArraySize]();
 
 		session->GetFilm().GetOutput(session->GetFilm().OUTPUT_RGB_TONEMAPPED, pixels, 0);
-		session->GetFilm().Save();
 
 		int i = 0;
 
@@ -233,10 +389,7 @@ static void DoRendering(RenderSession *session, RendProgressCallback *prog, Bitm
 	pixels = new float[pixelArraySize]();
 
 	session->GetFilm().GetOutput(session->GetFilm().OUTPUT_RGB_TONEMAPPED, pixels, 0);
-	session->GetFilm().Save();
 }
-
-//New code for meshes
 
 int LuxMaxInternal::Render(
 	TimeValue t,   			// frame to render.
@@ -250,34 +403,94 @@ int LuxMaxInternal::Render(
 	using namespace std;
 	using namespace luxrays;
 	using namespace luxcore;
-	RenderGlobalContext *rc;
 	const wchar_t *renderProgTitle = NULL;
 	defaultlightset = true;
-	
-	mprintf(_T("\nRendering with Luxcore version: %s,%s \n"), LUXCORE_VERSION_MAJOR, LUXCORE_VERSION_MINOR);
-	int frameNum = t / GetTicksPerFrame();
-	//mprintf(_T("\nRendering Frame: %i \n"), frameNum);
-	//mprintf(_T("\nhwnd: %i \n"), hwnd);
-	//mprintf(_T("\nRendertype: %i \n"), rendertype);
-	//it returns 1377968 for material editor window
-	//mprintf(_T("\nwindow: %i \n"), tobm->GetWindow());
-	//tobm->GetInterfaceAt(0)->GetID()
-	//we need to get the material editor id..
-	/*if (tobm->GetWindow() == MTL_BROWSE_OPEN1)
+
+	//mprintf(_T("\nRendering with Luxcore version: %s,%s \n"), LUXCORE_VERSION_MAJOR, LUXCORE_VERSION_MINOR);
+
+
+if (renderingMaterialPreview)
+{
+
+	//Here we create a dummy mesh and dummy material, if we do not do this the renderer crashes.
+	//It's very small and should not be visible in the material previews.
+	//We also create and assign a dummy material.
+	materialPreviewScene->Parse(
+		Property("scene.materials.mat_dummy.type")("matte") <<
+		Property("scene.materials.mat_dummy.kd")(1.0f, 1.f, 1.f)
+		);
+		CreateBox(materialPreviewScene, "dummybox", "dummyboxmesh", "mat_dummy", false, BBox(Point(-.01f, -.01f, .01f), Point(.5f, .5f, 0.7f)));
+
+
+		defaultlightset = false;
+		renderWidth = tobm->Width();
+		renderHeight = tobm->Height();
+		
+		materialPreviewScene->Parse(
+			Property("scene.camera.lookat.orig")(200.f, 200.f, 200.f) <<
+			Property("scene.camera.lookat.target")(0.f, 0.f, 0.f) <<
+			Property("scene.camera.fieldofview")(60.f)
+			);
+
+		//Instead of the preview sky light, we should fetch max's internal lights for material previews.
+		lxmLights.exportDefaultSkyLight(materialPreviewScene);
+		
+		RenderConfig *config = new RenderConfig(
+			Property("renderengine.type")("PATHCPU") <<
+			Property("sampler.type")("SOBOL") <<
+			Property("opencl.platform.index")(-1) <<
+			Property("opencl.cpu.use")(true) <<
+			Property("opencl.gpu.use")(true) <<
+			Property("batch.halttime")(3) <<
+			Property("film.outputs.1.type")("RGBA_TONEMAPPED") <<
+			Property("film.outputs.1.filename")("tmp.png") <<
+			Property("film.imagepipeline.0.type")("TONEMAP_AUTOLINEAR") <<
+			Property("film.imagepipeline.1.type")("GAMMA_CORRECTION") <<
+			Property("film.height")(renderHeight) <<
+			Property("film.width")(renderWidth) <<
+			Property("film.imagepipeline.1.value")(1.0f),
+			materialPreviewScene);
+		RenderSession *session = new RenderSession(config);
+
+		session->Start();
+
+		DoRendering(session, prog, tobm);
+		session->Stop();
+
+		int i = 0;
+
+		BMM_Color_64 col64;
+		col64.r = 0;
+		col64.g = 0;
+		col64.b = 0;
+		//fill in the pixels
+		for (int w = renderHeight; w > 0; w--)
+		{
+			for (int h = 0; h < renderWidth; h++)
+			{
+				col64.r = (WORD)floorf(pixels[i] * 65535.f + .5f);
+				col64.g = (WORD)floorf(pixels[i + 1] * 65535.f + .5f);
+				col64.b = (WORD)floorf(pixels[i + 2] * 65535.f + .5f);
+
+				tobm->PutPixels(h, w, 1, &col64);
+
+				i += 3;
+			}
+		}
+		tobm->RefreshWindow(NULL);
+
+		pixels = NULL;
+		delete session;
+		delete config;
+		delete materialPreviewScene;
+
+		SLG_LOG("Done.");
+
+		return 1;
+	}else
+
 	{
-
-}*/
-	//Scene *scene = new Scene();
-
-	if (rc->inMtlEdit)
-	{
-		mprintf(_T("\nRendering material preview.\n"));
-	}
-
-
-	scene = new Scene();
-	
-	
+	Scene *scene = new Scene();
 	//In the camera 'export' function we check for supported camera, it returns false if something is not right.
 	if (!lxmCamera.exportCamera((float)_wtof(LensRadiusstr), *scene))
 	{
@@ -293,8 +506,8 @@ int LuxMaxInternal::Render(
 		//prog->SetCurField(1);
 		renderProgTitle = (L"Translating object: %s", currNode->GetName());
 		prog->SetTitle(renderProgTitle);
-		mprintf(_T("\n Total Rendering elements number: %i"), maxscene->NumChildren());
-		mprintf(_T("   ::   Current elements number: %i \n"), a + 1);
+	//	mprintf(_T("\n Total Rendering elements number: %i"), maxscene->NumChildren());
+//		mprintf(_T("   ::   Current elements number: %i \n"), a + 1);
 		prog->Progress(a + 1, maxscene->NumChildren());
 
 		Object*	obj;
@@ -312,7 +525,7 @@ int LuxMaxInternal::Render(
 
 		case LIGHT_CLASS_ID:
 		{
-			Properties props;
+			//Properties props;
 			std::string objString;
 			bool lightsupport = false;
 
@@ -349,7 +562,7 @@ int LuxMaxInternal::Render(
 				scene->Parse(lxmLights.exportDiright(currNode));
 				lightsupport = true;
 			}
-			if (lightsupport = false)
+			if (lightsupport == false)
 			{
 				if (defaultlightchk == true)
 				{
@@ -381,15 +594,7 @@ int LuxMaxInternal::Render(
 	{
 		if (defaultlightset == true)
 		{
-			scene->Parse(
-				//Property("scene.lights.infinitelight.type")("infinite") <<
-				//Property("scene.lights.infinitelight.file")("C:/Temp/glacier.exr") <<
-				//Property("scene.lights.infinitelight.gain")(1.0f, 1.0f, 1.0f)
-				Property("scene.lights.skyl.type")("sky") <<
-				Property("scene.lights.skyl.dir")(0.166974f, 0.59908f, 0.783085f) <<
-				Property("scene.lights.skyl.turbidity")(2.2f) <<
-				Property("scene.lights.skyl.gain")(1.0f, 1.0f, 1.0f)
-				);
+			lxmLights.exportDefaultSkyLight(scene);
 		}
 	}
 
@@ -447,7 +652,7 @@ int LuxMaxInternal::Render(
 		Property("sampler.type")("SOBOL") <<
 		//Property("sampler.type")("METROPOLIS") <<
 		Property("opencl.platform.index")(-1) <<
-		Property("opencl.cpu.use")(false) <<
+		Property("opencl.cpu.use")(true) <<
 		Property("opencl.gpu.use")(true) <<
 		Property("batch.halttime")(halttime) <<
 		Property("film.outputs.1.type")("RGBA_TONEMAPPED") <<
@@ -497,6 +702,7 @@ int LuxMaxInternal::Render(
 	SLG_LOG("Done.");
 
 	return 1;
+	}
 }
 
 void LuxMaxInternal::Close(HWND hwnd, RendProgressCallback* prog) {

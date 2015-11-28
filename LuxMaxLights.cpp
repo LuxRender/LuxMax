@@ -146,6 +146,16 @@ luxrays::Properties LuxMaxLights::exportSkyLight(INode* SkyLight)
 	return props;
 }
 
+void LuxMaxLights::exportDefaultSkyLight(luxcore::Scene *scene)
+{
+	scene->Parse(
+		luxrays::Property("scene.lights.skyl.type")("sky") <<
+		luxrays::Property("scene.lights.skyl.dir")(0.166974f, 0.59908f, 0.783085f) <<
+		luxrays::Property("scene.lights.skyl.turbidity")(2.2f) <<
+		luxrays::Property("scene.lights.skyl.gain")(1.0f, 1.0f, 1.0f)
+		);
+}
+
 luxrays::Properties LuxMaxLights::exportDiright(INode* DirLight)
 {
 	luxrays::Properties props;
