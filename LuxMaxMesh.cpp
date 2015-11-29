@@ -297,8 +297,6 @@ void LuxMaxMesh::createMesh(INode * currNode, luxcore::Scene &scene)
 	Object*	obj;
 	ObjectState os = currNode->EvalWorldState(GetCOREInterface()->GetTime());
 	obj = os.obj;
-
-	Object *pObj = currNode->GetObjectRef();
 	Matrix3 nodeInitTM;
 	Point4 nodeRotation;
 	TriObject *p_triobj = NULL;
