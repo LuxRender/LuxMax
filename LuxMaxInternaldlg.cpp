@@ -68,6 +68,7 @@ LuxMaxInternalParamDlg::~LuxMaxInternalParamDlg()
 INT_PTR LuxMaxInternalParamDlg::WndProc(
 	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	UNREFERENCED_PARAMETER(wParam);
 	LuxMaxInternalParamDlg *dlg = DLGetWindowLongPtr<LuxMaxInternalParamDlg*>(hWnd);
 
 	switch (msg) {
@@ -439,7 +440,6 @@ UINT_PTR PMFileHook(HWND hWnd,UINT message,WPARAM wParam,LPARAM   lParam)
 #endif
 
 BOOL LuxMaxInternalParamDlg::FileBrowse() {
-	int tried = 0;
 	FilterList filterList;
 	HWND hWnd = hPanel;
 	static int filterIndex = 1;

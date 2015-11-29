@@ -179,7 +179,8 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 		const wchar_t *matType = L"";
 		luxrays::Properties prop;
 		::Point3 colorDiffuse;
-		float ioroutside, iorinside;
+		float ioroutside = 0.0f;
+		float iorinside = 0.0f;
 
 		colorDiffuse = getMaterialDiffuseColor(mat);
 
