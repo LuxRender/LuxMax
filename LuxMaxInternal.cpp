@@ -89,12 +89,12 @@ Scene *materialPreviewScene;// = new Scene();
 class LuxMaxInternalClassDesc :public ClassDesc2 {
 public:
 	virtual int 			IsPublic() { return 1; }
-	virtual void *			Create(BOOL loading) { return new LuxMaxInternal; }
+	virtual void *			Create(BOOL loading) { UNREFERENCED_PARAMETER(loading); return new LuxMaxInternal; }
 	virtual const TCHAR *	ClassName() { return GetString(IDS_VRENDTITLE); }
 	virtual SClass_ID		SuperClassID() { return RENDERER_CLASS_ID; }
 	virtual Class_ID 		ClassID() { return REND_CLASS_ID; }
 	virtual const TCHAR* 	Category() { return _T(""); }
-	virtual void			ResetClassParams(BOOL fileReset) {}
+	virtual void			ResetClassParams(BOOL fileReset) { UNREFERENCED_PARAMETER(fileReset); }
 };
 
 
@@ -125,6 +125,11 @@ static ParamBlockDesc2 DepthOfFieldblk(lens_params, _T("Simple Parameters"), 0, 
 RefResult LuxMaxInternal::NotifyRefChanged(	const Interval &changeInt, RefTargetHandle hTarget, PartID &partID,
 	RefMessage message,	BOOL propagate)
 {
+	UNREFERENCED_PARAMETER(propagate);
+	UNREFERENCED_PARAMETER(message);
+	UNREFERENCED_PARAMETER(partID);
+	UNREFERENCED_PARAMETER(hTarget);
+	UNREFERENCED_PARAMETER(changeInt);
 	/*switch (message)
 	{
 	case REFMSG_CHANGE:
@@ -295,6 +300,10 @@ int LuxMaxInternal::Open(
 	RendProgressCallback* prog
 	)
 {
+	UNREFERENCED_PARAMETER(prog);
+	UNREFERENCED_PARAMETER(numDefLights);
+	UNREFERENCED_PARAMETER(defaultLights);
+	UNREFERENCED_PARAMETER(hwnd);
 
 	viewNode = vnode;
 	camPos = viewPar->affineTM;
@@ -400,6 +409,12 @@ int LuxMaxInternal::Render(
 	ViewParams *vp
 	)
 {
+	UNREFERENCED_PARAMETER(vp);
+	UNREFERENCED_PARAMETER(hwnd);
+	UNREFERENCED_PARAMETER(frp);
+	UNREFERENCED_PARAMETER(t);
+	UNREFERENCED_PARAMETER(prog);
+
 	using namespace std;
 	using namespace luxrays;
 	using namespace luxcore;
@@ -706,6 +721,8 @@ if (renderingMaterialPreview)
 }
 
 void LuxMaxInternal::Close(HWND hwnd, RendProgressCallback* prog) {
+	UNREFERENCED_PARAMETER(prog);
+	UNREFERENCED_PARAMETER(hwnd);
 	if (file)
 		delete file;
 	file = NULL;
