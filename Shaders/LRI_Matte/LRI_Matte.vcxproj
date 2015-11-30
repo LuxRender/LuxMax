@@ -18,7 +18,7 @@
     <ProjectName>LRI_Matte</ProjectName>
     <ProjectGuid>{6671F0BA-6FB8-4f35-8392-0676D05113A8}</ProjectGuid>
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <MaxSDK>C:\Program Files\Autodesk\3ds Max 2015 SDK\maxsdk</MaxSDK>
+    <MaxSDK>C:\Program Files\Autodesk\3ds Max 2016 SDK\maxsdk</MaxSDK>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Hybrid|x64'">
@@ -37,7 +37,7 @@
   </ImportGroup>
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Platform)'=='x64'">C:\Program Files\Autodesk\3ds Max 2015\plugins\</OutDir>
+    <OutDir Condition="'$(Platform)'=='x64'">D:\Program Files\Autodesk\3ds Max 2016\plugins\</OutDir>
     <IntDir>$(ProjectDir)\obj\$(MaxPlatform)\$(MaxConfiguration)\</IntDir>
     <TargetName>LRI_Matte</TargetName>
     <TargetExt>.dlt</TargetExt>
@@ -50,7 +50,7 @@
       <WarningLevel>Level4</WarningLevel>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(MaxSdkLib);%(AdditionalLibraryDirectories);C:\Program Files\Autodesk\3ds Max 2015 SDK\maxsdk\lib\x64\Release</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MaxSdkLib);%(AdditionalLibraryDirectories);C:\Program Files\Autodesk\3ds Max 2016 SDK\maxsdk\lib\x64\Release</AdditionalLibraryDirectories>
       <AdditionalDependencies>bmm.lib; core.lib; geom.lib; gfx.lib; mesh.lib; maxutil.lib; maxscrpt.lib; manipsys.lib; paramblk2.lib;;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>LRI_Matte.def</ModuleDefinitionFile>
     </Link>

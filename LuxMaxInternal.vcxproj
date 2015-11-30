@@ -28,7 +28,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B4AA58F2-E1C5-4FB7-94E3-0C26E98DAA5B}</ProjectGuid>
-    <MaxSDK>C:\Program Files\Autodesk\3ds Max 2015 SDK\maxsdk</MaxSDK>
+    <MaxSDK>C:\Program Files\Autodesk\3ds Max 2016 SDK\maxsdk</MaxSDK>
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <ProjectName>LuxMax_Internal</ProjectName>
   </PropertyGroup>
@@ -51,19 +51,19 @@
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
-  <Import Project="C:\Program Files\Autodesk\3ds Max 2015 SDK\maxsdk\ProjectSettings\propertySheets\3dsmax.general.project.settings.props" />
+  <Import Project="C:\Program Files\Autodesk\3ds Max 2016 SDK\maxsdk\ProjectSettings\propertySheets\3dsmax.general.project.settings.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="PropertySheets">
-    <Import Project="C:\Program Files\Autodesk\3ds Max 2015 SDK\maxsdk\ProjectSettings\propertySheets\3dsmax.cpp.props" />
+    <Import Project="C:\Program Files\Autodesk\3ds Max 2016 SDK\maxsdk\ProjectSettings\propertySheets\3dsmax.cpp.props" />
   </ImportGroup>
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir>C:\Program Files\Autodesk\3ds Max 2015\plugins\</OutDir>
+    <OutDir>D:\Program Files\Autodesk\3ds Max 2016\plugins\</OutDir>
     <TargetName>LuxMaxInternal</TargetName>
     <TargetExt>.dlr</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LibraryPath>C:\Program Files\Autodesk\3ds Max 2015 SDK\maxsdk\lib\x64\Release;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Program Files\Autodesk\3ds Max 2016 SDK\maxsdk\lib\x64\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>C:\development\lux\windows_deps\x64\Release\lib;C:\boost_1_56_0\lib64-msvc-11.0\;C:\development\lux\windows_deps\include\Boost;C:\development\lux\windows\Build_CMake\LuxRays\lib\Release;C:\development\lux\luxrays\include\;C:\development\lux\luxrays\include\luxcore\;$(IncludePath);C:\development\lux\luxrays\include;C:\development\lux\windows_deps\include\OpenImageIO;C:\development\lux\windows_deps\include\OpenEXR;C:\development\lux\windows_deps\include;C:\development\lux\windows_deps\include\Python3</IncludePath>
@@ -122,7 +122,7 @@
       <WarningLevel>Level4</WarningLevel>
     </ClCompile>
     <Link>
-      <OutputFile>C:\Program Files\Autodesk\3ds Max 2015\plugins\LuxMaxInternal.dlr</OutputFile>
+      <OutputFile>D:\Program Files\Autodesk\3ds Max 2016\plugins\LuxMaxInternal.dlr</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

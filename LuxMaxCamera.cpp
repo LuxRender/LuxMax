@@ -32,6 +32,7 @@
 #include <boost/assign.hpp>
 #include <boost/format.hpp>
 #include <maxscript\maxscript.h>
+#include <Scene/IPhysicalCamera.h>
 #include <luxcore/luxcore.h>
 #include <luxrays\luxrays.h>
 
@@ -39,6 +40,7 @@
 #define MAX2016_PHYSICAL_CAMERA Class_ID(1181315608,686293133)
 
 using namespace std;
+using namespace MaxSDK;
 using namespace luxcore;
 using namespace luxrays;
 
@@ -61,14 +63,36 @@ bool LuxMaxCamera::exportCamera(float lensRadius, luxcore::Scene &scene)
 	}
 	else
 	{
-		ObjectState os = camNode->EvalWorldState(GetCOREInterface()->GetTime());
-		Object*	obj;
-		obj = os.obj;
-		CameraObject*   cameraPtr = (CameraObject *)os.obj;
+		//ObjectState os = camNode->EvalWorldState(GetCOREInterface()->GetTime());
+		//Object*	obj;
+		//obj = (camNode->EvalWorldState(GetCOREInterface()->GetTime()).obj);
+		CameraObject*   cameraPtr = (CameraObject *)camNode->EvalWorldState(GetCOREInterface()->GetTime()).obj;
+
+		float v = 0.0f;
+		float FOV = 0;
+		float focaldistance = 0;
+		Interval      ivalid = FOREVER;
+		IParamBlock2 *pBlock = camNode->GetParamBlock(0);
+		IParamBlock2* pblock2;
+		//camNode->pblock2->GetValue(0, GetCOREInterface()->GetTime(), v, ivalid);
+		//if (cameraPtr->ClassID() == LuxCamera_CLASS_ID)
+		if (v > 0.0f)
+		{
+			MessageBox(0, L"LuxCam modifier selected.", L"Error!", MB_OK);
+			return false;
+		}
+
 		if (cameraPtr->ClassID() == MAX2016_PHYSICAL_CAMERA)
 		{
-			MessageBox(0, L"3DSmax 2016 Physical camera not supported, please render through 'standard' camera.", L"Error!", MB_OK);
-			return false;
+			IPhysicalCamera* physicalCamera = dynamic_cast<IPhysicalCamera*>(camNode->EvalWorldState(GetCOREInterface()->GetTime()).obj);
+
+			FOV = physicalCamera->GetFOV(GetCOREInterface()->GetTime(), FOREVER) * 180 / PI;
+			focaldistance = physicalCamera->GetTDist(GetCOREInterface()->GetTime(), FOREVER);
+		}
+		else
+		{
+			FOV = cameraPtr->GetFOV(GetCOREInterface()->GetTime(), FOREVER) * 180 / PI;
+			focaldistance = cameraPtr->GetTDist(GetCOREInterface()->GetTime(), FOREVER);
 		}
 
 		::Point3 camTrans = camNode->GetNodeTM(GetCOREInterface()->GetTime()).GetTrans();
@@ -77,7 +101,7 @@ bool LuxMaxCamera::exportCamera(float lensRadius, luxcore::Scene &scene)
 		::Matrix3 targetPos;
 		NewCam->GetTargetTM(GetCOREInterface()->GetTime(), targetPos);
 
-		float FOV = cameraPtr->GetFOV(GetCOREInterface()->GetTime(), FOREVER) * 180 / PI;
+		//float FOV = cameraPtr->GetFOV(GetCOREInterface()->GetTime(), FOREVER) * 180 / PI;
 		float aspectratio = GetCOREInterface11()->GetImageAspRatio();
 		if (aspectratio < 1)
 			FOV = 2.0f * ((180 / PI) *(atan(tan((PI / 180)*(FOV / 2.0f)) / aspectratio)));
@@ -88,11 +112,13 @@ bool LuxMaxCamera::exportCamera(float lensRadius, luxcore::Scene &scene)
 			Property("scene.camera.lookat.target")(targetPos.GetTrans().x, targetPos.GetTrans().y, targetPos.GetTrans().z) <<
 			Property("scene.camera.fieldofview")(FOV) <<
 			Property("scene.camera.lensradius")(lensRadius) <<
-			Property("scene.camera.focaldistance")(cameraPtr->GetTDist(GetCOREInterface()->GetTime(), FOREVER)) <<
+			//Property("scene.camera.focaldistance")(cameraPtr->GetTDist(GetCOREInterface()->GetTime(), FOREVER)) <<
+			Property("scene.camera.focaldistance")(focaldistance) <<
 			Property("scene.camera.shutteropen")(0.0f) <<
 			Property("scene.camera.shutterclose")(1.615f)
 			);
 		return true;
 	}
+
 	
 }
