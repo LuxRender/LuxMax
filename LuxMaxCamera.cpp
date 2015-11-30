@@ -63,9 +63,6 @@ bool LuxMaxCamera::exportCamera(float lensRadius, luxcore::Scene &scene)
 	}
 	else
 	{
-		//ObjectState os = camNode->EvalWorldState(GetCOREInterface()->GetTime());
-		//Object*	obj;
-		//obj = (camNode->EvalWorldState(GetCOREInterface()->GetTime()).obj);
 		CameraObject*   cameraPtr = (CameraObject *)camNode->EvalWorldState(GetCOREInterface()->GetTime()).obj;
 
 		float v = 0.0f;
@@ -74,8 +71,7 @@ bool LuxMaxCamera::exportCamera(float lensRadius, luxcore::Scene &scene)
 		Interval      ivalid = FOREVER;
 		IParamBlock2 *pBlock = camNode->GetParamBlock(0);
 		IParamBlock2* pblock2;
-		//camNode->pblock2->GetValue(0, GetCOREInterface()->GetTime(), v, ivalid);
-		//if (cameraPtr->ClassID() == LuxCamera_CLASS_ID)
+
 		if (v > 0.0f)
 		{
 			MessageBox(0, L"LuxCam modifier selected.", L"Error!", MB_OK);
@@ -100,7 +96,6 @@ bool LuxMaxCamera::exportCamera(float lensRadius, luxcore::Scene &scene)
 		::Matrix3 targetPos;
 		NewCam->GetTargetTM(GetCOREInterface()->GetTime(), targetPos);
 
-		//float FOV = cameraPtr->GetFOV(GetCOREInterface()->GetTime(), FOREVER) * 180 / PI;
 		float aspectratio = GetCOREInterface11()->GetImageAspRatio();
 		if (aspectratio < 1)
 			FOV = 2.0f * ((180 / PI) *(atan(tan((PI / 180)*(FOV / 2.0f)) / aspectratio)));
