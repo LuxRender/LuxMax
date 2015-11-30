@@ -96,7 +96,6 @@ bool LuxMaxCamera::exportCamera(float lensRadius, luxcore::Scene &scene)
 		}
 
 		::Point3 camTrans = camNode->GetNodeTM(GetCOREInterface()->GetTime()).GetTrans();
-		Interface* g_ip = GetCOREInterface();
 		INode* NewCam = camNode;
 		::Matrix3 targetPos;
 		NewCam->GetTargetTM(GetCOREInterface()->GetTime(), targetPos);

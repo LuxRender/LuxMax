@@ -114,7 +114,8 @@ luxrays::Properties LuxMaxLights::exportSkyLight(INode* SkyLight)
 	LightObject *light = (LightObject*)os.obj;
 
 	color = light->GetRGBColor(GetCOREInterface()->GetTime(), FOREVER);
-	float ColorIntensValue = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
+	float ColorIntensValue = 0.0f;
+	ColorIntensValue = light->GetIntensity(GetCOREInterface()->GetTime(), FOREVER);
 
 	objString.append("scene.lights.");
 	objString.append(lmutil.ToNarrow(SkyLight->GetName()));
