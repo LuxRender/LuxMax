@@ -26,6 +26,7 @@ HINSTANCE hInstance;
 
 /** public functions **/
 BOOL WINAPI DllMain(HINSTANCE hinstDLL,ULONG fdwReason,LPVOID lpvReserved) {
+	UNREFERENCED_PARAMETER(lpvReserved);
    if( fdwReason == DLL_PROCESS_ATTACH )
    {
       MaxSDK::Util::UseLanguagePackLocale();
