@@ -86,7 +86,6 @@ int renderHeight = 0;
 bool renderingMaterialPreview = false;
 Scene *materialPreviewScene;// = new Scene();
 
-
 class LuxMaxInternalClassDesc :public ClassDesc2 {
 public:
 	virtual int 			IsPublic() { return 1; }
@@ -97,7 +96,6 @@ public:
 	virtual const TCHAR* 	Category() { return _T(""); }
 	virtual void			ResetClassParams(BOOL fileReset) { UNREFERENCED_PARAMETER(fileReset); }
 };
-
 
 ClassDesc2* GetRendDesc() {
 	static LuxMaxInternalClassDesc srendCD;
@@ -112,19 +110,19 @@ const int MAX_SPIN = 100.0f;*/
 /*
 
 static ParamBlockDesc2 DepthOfFieldblk(lens_params, _T("Simple Parameters"), 0, GetRendDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI, 1,
-	//rollout
-	IDD_DEPTH, IDS_DEPTH, 0, 0, NULL,
-	// params
-	lensradius_spin,		_T("spin"),			TYPE_FLOAT,		P_ANIMATABLE,	IDS_SPIN,
-		p_default,			0.1f,
-		p_range,			0.0f, 1000.0f,
-		p_ui,				TYPE_SPINNER,		EDITTYPE_FLOAT, IDC_LENSRADIUS, IDC_LENSRADIUS_SPIN, 0.01f,
-		p_end,
-	p_end
-	);*/
+//rollout
+IDD_DEPTH, IDS_DEPTH, 0, 0, NULL,
+// params
+lensradius_spin,		_T("spin"),			TYPE_FLOAT,		P_ANIMATABLE,	IDS_SPIN,
+p_default,			0.1f,
+p_range,			0.0f, 1000.0f,
+p_ui,				TYPE_SPINNER,		EDITTYPE_FLOAT, IDC_LENSRADIUS, IDC_LENSRADIUS_SPIN, 0.01f,
+p_end,
+p_end
+);*/
 
-RefResult LuxMaxInternal::NotifyRefChanged(	const Interval &changeInt, RefTargetHandle hTarget, PartID &partID,
-	RefMessage message,	BOOL propagate)
+RefResult LuxMaxInternal::NotifyRefChanged(const Interval &changeInt, RefTargetHandle hTarget, PartID &partID,
+	RefMessage message, BOOL propagate)
 {
 	UNREFERENCED_PARAMETER(propagate);
 	UNREFERENCED_PARAMETER(message);
@@ -135,13 +133,13 @@ RefResult LuxMaxInternal::NotifyRefChanged(	const Interval &changeInt, RefTarget
 	{
 	case REFMSG_CHANGE:
 	{
-		if (hTarget == pblock)
-		{
-			ParamID changing_param = pblock->LastNotifyParamID();
-			DepthOfFieldblk.InvalidateUI(changing_param);
-		}
+	if (hTarget == pblock)
+	{
+	ParamID changing_param = pblock->LastNotifyParamID();
+	DepthOfFieldblk.InvalidateUI(changing_param);
 	}
-		break;
+	}
+	break;
 	}*/
 	return REF_SUCCEED;
 }
@@ -262,13 +260,12 @@ Mtl * matPrevNodesEnum(INode * inode)
 			lxmMaterials.exportMaterial(mat, *materialPreviewScene);
 			return mat;
 		}
-		
 	}
 
 	ObjectState ostate = inode->EvalWorldState(0);
 	if (ostate.obj->SuperClassID() == GEOMOBJECT_CLASS_ID)
 		if (ostate.obj->CanConvertToType(triObjectClassID))
-	{
+		{
 			Object * obj = ostate.obj;
 			if (!obj)
 				return NULL;
@@ -276,17 +273,16 @@ Mtl * matPrevNodesEnum(INode * inode)
 			if (!tobj)
 				return NULL;
 			::Mesh * cmesh = &(tobj->mesh);
-			
-			lxmMaterials.exportMaterial(inode->GetMtl(),*materialPreviewScene);
+
+			lxmMaterials.exportMaterial(inode->GetMtl(), *materialPreviewScene);
 			if (!cmesh)
 				return NULL;
-			
+
 			return inode->GetMtl();
 		}
 
 	return NULL;
 }
-
 
 ::Matrix3 camPos;
 
@@ -351,8 +347,8 @@ static void DoRendering(RenderSession *session, RendProgressCallback *prog, Bitm
 
 		// Print some information about the rendering progress
 		//sprintf(buf, "[Elapsed time: %3d/%dsec][Samples %4d/%d][Convergence %f%%][Avg. samples/sec % 3.2fM on %.1fK tris]",
-//			int(elapsedTime), int(haltTime), pass, haltSpp, 100.f * convergence,
-	//		stats.Get("stats.renderengine.total.samplesec").Get<double>() / 1000000.0,
+		//			int(elapsedTime), int(haltTime), pass, haltSpp, 100.f * convergence,
+		//		stats.Get("stats.renderengine.total.samplesec").Get<double>() / 1000000.0,
 		//	stats.Get("stats.dataset.trianglecount").Get<double>() / 1000.0);
 		//mprintf(_T("Elapsed time %i\n"), int(elapsedTime));
 
@@ -424,19 +420,16 @@ int LuxMaxInternal::Render(
 
 	//mprintf(_T("\nRendering with Luxcore version: %s,%s \n"), LUXCORE_VERSION_MAJOR, LUXCORE_VERSION_MINOR);
 
-
-if (renderingMaterialPreview)
-{
-
-	//Here we create a dummy mesh and dummy material, if we do not do this the renderer crashes.
-	//It's very small and should not be visible in the material previews.
-	//We also create and assign a dummy material.
-	materialPreviewScene->Parse(
-		Property("scene.materials.mat_dummy.type")("matte") <<
-		Property("scene.materials.mat_dummy.kd")(1.0f, 1.f, 1.f)
-		);
+	if (renderingMaterialPreview)
+	{
+		//Here we create a dummy mesh and dummy material, if we do not do this the renderer crashes.
+		//It's very small and should not be visible in the material previews.
+		//We also create and assign a dummy material.
+		materialPreviewScene->Parse(
+			Property("scene.materials.mat_dummy.type")("matte") <<
+			Property("scene.materials.mat_dummy.kd")(1.0f, 1.f, 1.f)
+			);
 		CreateBox(materialPreviewScene, "dummybox", "dummyboxmesh", "mat_dummy", false, BBox(Point(-.01f, -.01f, .01f), Point(.5f, .5f, 0.7f)));
-
 
 		defaultlightset = false;
 		renderWidth = tobm->Width();
@@ -452,7 +445,7 @@ if (renderingMaterialPreview)
 
 		//Instead of the preview sky light, we should fetch max's internal lights for material previews.
 		lxmLights.exportDefaultSkyLight(materialPreviewScene);
-		
+
 		RenderConfig *config = new RenderConfig(
 			Property("renderengine.type")("PATHCPU") <<
 			Property("sampler.type")("SOBOL") <<
@@ -505,221 +498,222 @@ if (renderingMaterialPreview)
 		SLG_LOG("Done.");
 
 		return 1;
-	}else
-
-	{
-	Scene *scene = new Scene();
-	//In the camera 'export' function we check for supported camera, it returns false if something is not right.
-	if (!lxmCamera.exportCamera((float)_wtof(LensRadiusstr), *scene))
-	{
-		return false;
 	}
+	else
 
-	//Export all meshes
-	INode* maxscene = GetCOREInterface7()->GetRootNode();
-	for (int a = 0; maxscene->NumChildren() > a; a++)
 	{
-		INode* currNode = maxscene->GetChildNode(a);
-
-		//prog->SetCurField(1);
-		renderProgTitle = (L"Translating object: %s", currNode->GetName());
-		prog->SetTitle(renderProgTitle);
-	//	mprintf(_T("\n Total Rendering elements number: %i"), maxscene->NumChildren());
-//		mprintf(_T("   ::   Current elements number: %i \n"), a + 1);
-		prog->Progress(a + 1, maxscene->NumChildren());
-
-		Object*	obj;
-		ObjectState os = currNode->EvalWorldState(GetCOREInterface()->GetTime());
-		obj = os.obj;
-		bool doExport = true;
-
-		switch (os.obj->SuperClassID())
+		Scene *scene = new Scene();
+		//In the camera 'export' function we check for supported camera, it returns false if something is not right.
+		if (!lxmCamera.exportCamera((float)_wtof(LensRadiusstr), *scene))
 		{
-		case HELPER_CLASS_ID:
-		{
-			doExport = false;
-			break;
+			return false;
 		}
 
-		case LIGHT_CLASS_ID:
+		//Export all meshes
+		INode* maxscene = GetCOREInterface7()->GetRootNode();
+		for (int a = 0; maxscene->NumChildren() > a; a++)
 		{
-			//Properties props;
-			std::string objString;
-			bool lightsupport = false;
+			INode* currNode = maxscene->GetChildNode(a);
 
-			if (defaultlightchk == true)
+			//prog->SetCurField(1);
+			renderProgTitle = (L"Translating object: %s", currNode->GetName());
+			prog->SetTitle(renderProgTitle);
+			//	mprintf(_T("\n Total Rendering elements number: %i"), maxscene->NumChildren());
+			//		mprintf(_T("   ::   Current elements number: %i \n"), a + 1);
+			prog->Progress(a + 1, maxscene->NumChildren());
+
+			Object*	obj;
+			ObjectState os = currNode->EvalWorldState(GetCOREInterface()->GetTime());
+			obj = os.obj;
+			bool doExport = true;
+
+			switch (os.obj->SuperClassID())
 			{
-				if (defaultlightauto == true)
-				{
-					defaultlightset = false;
-				}
-			}
-			else
+			case HELPER_CLASS_ID:
 			{
-				defaultlightset = false;
-				mprintf(_T("\n Default Light Deactive Automaticlly %i \n"));
+				doExport = false;
+				break;
 			}
 
-			if (os.obj->ClassID() == OMNI_CLASSID)
+			case LIGHT_CLASS_ID:
 			{
-				scene->Parse(lxmLights.exportOmni(currNode));
-				lightsupport = true;
-			}
-			if (os.obj->ClassID() == SPOTLIGHT_CLASSID)
-			{
-				scene->Parse(lxmLights.exportSpotLight(currNode));
-				lightsupport = true;
-			}
-			if (os.obj->ClassID() == SKYLIGHT_CLASSID)
-			{
-				scene->Parse(lxmLights.exportSkyLight(currNode));
-				lightsupport = true;
-			}
-			if (os.obj->ClassID() == DIRLIGHT_CLASSID)
-			{
-				scene->Parse(lxmLights.exportDiright(currNode));
-				lightsupport = true;
-			}
-			if (lightsupport == false)
-			{
+				//Properties props;
+				std::string objString;
+				bool lightsupport = false;
+
 				if (defaultlightchk == true)
 				{
-					mprintf(_T("\n There is No Suported light in scene %i \n"));
-					defaultlightset = true;
+					if (defaultlightauto == true)
+					{
+						defaultlightset = false;
+					}
 				}
+				else
+				{
+					defaultlightset = false;
+					mprintf(_T("\n Default Light Deactive Automaticlly %i \n"));
+				}
+
+				if (os.obj->ClassID() == OMNI_CLASSID)
+				{
+					scene->Parse(lxmLights.exportOmni(currNode));
+					lightsupport = true;
+				}
+				if (os.obj->ClassID() == SPOTLIGHT_CLASSID)
+				{
+					scene->Parse(lxmLights.exportSpotLight(currNode));
+					lightsupport = true;
+				}
+				if (os.obj->ClassID() == SKYLIGHT_CLASSID)
+				{
+					scene->Parse(lxmLights.exportSkyLight(currNode));
+					lightsupport = true;
+				}
+				if (os.obj->ClassID() == DIRLIGHT_CLASSID)
+				{
+					scene->Parse(lxmLights.exportDiright(currNode));
+					lightsupport = true;
+				}
+				if (lightsupport == false)
+				{
+					if (defaultlightchk == true)
+					{
+						mprintf(_T("\n There is No Suported light in scene %i \n"));
+						defaultlightset = true;
+					}
+				}
+
+				break;
 			}
 
-			break;
-		}
-
-		/*case CAMERA_CLASS_ID:
-		{
-		break;
-		}*/
-
-		case GEOMOBJECT_CLASS_ID:
-		{
-			if (doExport)
+			/*case CAMERA_CLASS_ID:
 			{
-				lxmMesh.createMesh(currNode, *scene);
+			break;
+			}*/
+
+			case GEOMOBJECT_CLASS_ID:
+			{
+				if (doExport)
+				{
+					lxmMesh.createMesh(currNode, *scene);
+				}
+				break;
 			}
+			}
+		}
+
+		if (defaultlightchk == true)
+		{
+			if (defaultlightset == true)
+			{
+				lxmLights.exportDefaultSkyLight(scene);
+			}
+		}
+
+		std::string tmpFilename = FileName.ToCStr();
+		int halttime = (int)_wtof(halttimewstr);
+
+		if (tmpFilename != NULL)
+		{
+			mprintf(_T("\nRendering to: %s \n"), FileName.ToMSTR());
+		}
+
+		renderWidth = GetCOREInterface11()->GetRendWidth();
+		renderHeight = GetCOREInterface11()->GetRendHeight();
+
+		string tmprendtype = "PATHCPU";
+		rendertype = renderType;
+
+		switch (rendertype)
+		{
+		case 0:
+			tmprendtype = "BIASPATHCPU";
+			break;
+		case 1:
+			tmprendtype = "BIASPATHOCL";
+			break;
+		case 2:
+			tmprendtype = "BIDIRCPU";
+			break;
+		case 3:
+			tmprendtype = "BIDIRVMCPU";
+			break;
+		case 4:
+			tmprendtype = "PATHCPU";
+			break;
+		case 5:
+			tmprendtype = "PATHOCL";
+			break;
+		case 6:
+			tmprendtype = "RTBIASPATHOCL";
+			break;
+		case 7:
+			tmprendtype = "RTPATHOCL";
 			break;
 		}
-		}
-	}
+		mprintf(_T("\n Renderengine type is %i \n"), rendertype);
 
-	if (defaultlightchk == true)
-	{
-		if (defaultlightset == true)
+		RenderConfig *config = new RenderConfig(
+			//filesaver
+			//Property("renderengine.type")("FILESAVER") <<
+			//Property("filesaver.directory")("C:/tmp/filesaveroutput/") <<
+			//Property("filesaver.renderengine.type")("engine") <<
+			//Filesaver
+
+			Property("renderengine.type")(tmprendtype) <<
+			Property("sampler.type")("SOBOL") <<
+			//Property("sampler.type")("METROPOLIS") <<
+			Property("opencl.platform.index")(-1) <<
+			Property("opencl.cpu.use")(true) <<
+			Property("opencl.gpu.use")(true) <<
+			Property("batch.halttime")(halttime) <<
+			Property("film.outputs.1.type")("RGBA_TONEMAPPED") <<
+			Property("film.outputs.1.filename")(tmpFilename) <<
+			Property("film.imagepipeline.0.type")("TONEMAP_AUTOLINEAR") <<
+			Property("film.imagepipeline.1.type")("GAMMA_CORRECTION") <<
+			Property("film.height")(renderHeight) <<
+			Property("film.width")(renderWidth) <<
+			Property("film.imagepipeline.1.value")(1.0f),
+			scene);
+		RenderSession *session = new RenderSession(config);
+
+		session->Start();
+
+		//We need to stop the rendering immidiately if debug output is selsected.
+
+		DoRendering(session, prog, tobm);
+		session->Stop();
+
+		int i = 0;
+
+		BMM_Color_64 col64;
+		col64.r = 0;
+		col64.g = 0;
+		col64.b = 0;
+		//fill in the pixels
+		for (int w = renderHeight; w > 0; w--)
 		{
-			lxmLights.exportDefaultSkyLight(scene);
+			for (int h = 0; h < renderWidth; h++)
+			{
+				col64.r = (WORD)floorf(pixels[i] * 65535.f + .5f);
+				col64.g = (WORD)floorf(pixels[i + 1] * 65535.f + .5f);
+				col64.b = (WORD)floorf(pixels[i + 2] * 65535.f + .5f);
+
+				tobm->PutPixels(h, w, 1, &col64);
+
+				i += 3;
+			}
 		}
-	}
+		tobm->RefreshWindow(NULL);
 
-	std::string tmpFilename = FileName.ToCStr();
-	int halttime = (int)_wtof(halttimewstr);
+		pixels = NULL;
+		delete session;
+		delete config;
+		delete scene;
 
-	if (tmpFilename != NULL)
-	{
-		mprintf(_T("\nRendering to: %s \n"), FileName.ToMSTR());
-	}
+		SLG_LOG("Done.");
 
-	renderWidth = GetCOREInterface11()->GetRendWidth();
-	renderHeight = GetCOREInterface11()->GetRendHeight();
-
-	string tmprendtype = "PATHCPU";
-	rendertype = renderType;
-
-	switch (rendertype)
-	{
-	case 0:
-		tmprendtype = "BIASPATHCPU";
-		break;
-	case 1:
-		tmprendtype = "BIASPATHOCL";
-		break;
-	case 2:
-		tmprendtype = "BIDIRCPU";
-		break;
-	case 3:
-		tmprendtype = "BIDIRVMCPU";
-		break;
-	case 4:
-		tmprendtype = "PATHCPU";
-		break;
-	case 5:
-		tmprendtype = "PATHOCL";
-		break;
-	case 6:
-		tmprendtype = "RTBIASPATHOCL";
-		break;
-	case 7:
-		tmprendtype = "RTPATHOCL";
-		break;
-	}
-	mprintf(_T("\n Renderengine type is %i \n"), rendertype);
-
-	RenderConfig *config = new RenderConfig(
-		//filesaver
-		//Property("renderengine.type")("FILESAVER") <<
-		//Property("filesaver.directory")("C:/tmp/filesaveroutput/") <<
-		//Property("filesaver.renderengine.type")("engine") <<
-		//Filesaver
-
-		Property("renderengine.type")(tmprendtype) <<
-		Property("sampler.type")("SOBOL") <<
-		//Property("sampler.type")("METROPOLIS") <<
-		Property("opencl.platform.index")(-1) <<
-		Property("opencl.cpu.use")(true) <<
-		Property("opencl.gpu.use")(true) <<
-		Property("batch.halttime")(halttime) <<
-		Property("film.outputs.1.type")("RGBA_TONEMAPPED") <<
-		Property("film.outputs.1.filename")(tmpFilename) <<
-		Property("film.imagepipeline.0.type")("TONEMAP_AUTOLINEAR") <<
-		Property("film.imagepipeline.1.type")("GAMMA_CORRECTION") <<
-		Property("film.height")(renderHeight) <<
-		Property("film.width")(renderWidth) <<
-		Property("film.imagepipeline.1.value")(1.0f),
-		scene);
-	RenderSession *session = new RenderSession(config);
-
-	session->Start();
-
-	//We need to stop the rendering immidiately if debug output is selsected.
-
-	DoRendering(session, prog, tobm);
-	session->Stop();
-
-	int i = 0;
-
-	BMM_Color_64 col64;
-	col64.r = 0;
-	col64.g = 0;
-	col64.b = 0;
-	//fill in the pixels
-	for (int w = renderHeight; w > 0; w--)
-	{
-		for (int h = 0; h < renderWidth; h++)
-		{
-			col64.r = (WORD)floorf(pixels[i] * 65535.f + .5f);
-			col64.g = (WORD)floorf(pixels[i + 1] * 65535.f + .5f);
-			col64.b = (WORD)floorf(pixels[i + 2] * 65535.f + .5f);
-
-			tobm->PutPixels(h, w, 1, &col64);
-
-			i += 3;
-		}
-	}
-	tobm->RefreshWindow(NULL);
-
-	pixels = NULL;
-	delete session;
-	delete config;
-	delete scene;
-
-	SLG_LOG("Done.");
-
-	return 1;
+		return 1;
 	}
 }
 
