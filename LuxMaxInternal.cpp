@@ -429,7 +429,7 @@ int LuxMaxInternal::Render(
 			Property("scene.materials.mat_dummy.type")("matte") <<
 			Property("scene.materials.mat_dummy.kd")(1.0f, 1.f, 1.f)
 			);
-		CreateBox(materialPreviewScene, "dummybox", "dummyboxmesh", "mat_dummy", false, BBox(Point(-.01f, -.01f, .01f), Point(.5f, .5f, 0.7f)));
+		CreateBox(materialPreviewScene, "dummybox", "dummyboxmesh", "mat_dummy", false, BBox(Point(-.001f, -.001f, .001f), Point(.05f, .05f, 0.07f)));
 
 		defaultlightset = false;
 		renderWidth = tobm->Width();
