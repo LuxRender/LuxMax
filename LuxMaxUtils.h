@@ -36,6 +36,7 @@ public:
 	std::string ReplaceAll(std::string str, const std::string& from, const std::string& to);
 	std::string floatToString(float number);
 	std::string getMaxNodeTransform(INode* node);
+	float GetMeterMult();
 	//luxrays::Properties getNodeTransform(INode* node);
 	
 };

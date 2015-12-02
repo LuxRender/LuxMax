@@ -49,6 +49,7 @@
 #include <string.h>
 #include <iostream>
 #include <IMaterialBrowserEntryInfo.h>
+#include <units.h>
 namespace luxcore
 {
 #include <luxcore/luxcore.h>
@@ -353,7 +354,7 @@ static void DoRendering(RenderSession *session, RendProgressCallback *prog, Bitm
 //			int(elapsedTime), int(haltTime), pass, haltSpp, 100.f * convergence,
 	//		stats.Get("stats.renderengine.total.samplesec").Get<double>() / 1000000.0,
 		//	stats.Get("stats.dataset.trianglecount").Get<double>() / 1000.0);
-		mprintf(_T("Elapsed time %i\n"), int(elapsedTime));
+		//mprintf(_T("Elapsed time %i\n"), int(elapsedTime));
 
 		state = (L"Rendering ....");
 		prog->SetTitle(state);
@@ -441,11 +442,33 @@ if (renderingMaterialPreview)
 		renderWidth = tobm->Width();
 		renderHeight = tobm->Height();
 		
+
+		
+//		DispInfo *tmpInfo;
+	//	int tmpVal = tmpInfo->dispType;
+		//float scaleFactor = (float)GetMasterScale(tmpVal);
+		//int displaytype = 0;
+		
+		
+		//if (tmp->dispType == MAX_UNIT_TYPES)
+		//{
+		//mprintf(_T("Scale type int: %i scale value: %f\n"), type, scale);
+			//was 1 for mm
+		//}
+		//TSTR formatvalue = FormatUniverseValue(6 / lxmUtils.GetMeterMult());
+		//float formatDecodeValue = DecodeUniverseValue(formatvalue);
+		float previewCameraDistance = 6 / lxmUtils.GetMeterMult();
+
 		materialPreviewScene->Parse(
-			Property("scene.camera.lookat.orig")(200.f, 200.f, 200.f) <<
+			Property("scene.camera.lookat.orig")(previewCameraDistance, previewCameraDistance, previewCameraDistance) <<
 			Property("scene.camera.lookat.target")(0.f, 0.f, 0.f) <<
 			Property("scene.camera.fieldofview")(60.f)
 			);
+		//materialPreviewScene->Parse(
+			//Property("scene.camera.lookat.orig")(200.f, 200.f, 200.f) <<
+			//Property("scene.camera.lookat.target")(0.f, 0.f, 0.f) <<
+			//Property("scene.camera.fieldofview")(60.f)
+			//);
 
 		//Instead of the preview sky light, we should fetch max's internal lights for material previews.
 		lxmLights.exportDefaultSkyLight(materialPreviewScene);

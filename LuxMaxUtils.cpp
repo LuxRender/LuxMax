@@ -48,6 +48,24 @@ LuxMaxUtils::~LuxMaxUtils()
 {
 }
 
+float LuxMaxUtils::GetMeterMult()
+{
+	int type;
+	float scale;
+	GetMasterUnitInfo(&type, &scale);
+	switch (type)
+	{
+	case UNITS_INCHES:      return scale*0.0254f;
+	case UNITS_FEET:     return scale*0.3048f;
+	case UNITS_MILES:    return scale*1609.3f;
+	case UNITS_MILLIMETERS: return scale*0.001f;
+	case UNITS_CENTIMETERS: return scale*0.01f;
+	case UNITS_METERS:      return scale;
+	case UNITS_KILOMETERS:  return scale*1000.0f;
+	default:          return 0;
+	}
+}
+
 std::string LuxMaxUtils::ToNarrow(const wchar_t *s, char dfault,
 	const std::locale& loc)
 {
@@ -120,7 +138,7 @@ std::string LuxMaxUtils::removeUnwatedChars(std::string& str)
 
 std::string LuxMaxUtils::getMaxNodeTransform(INode* node)
 {
-
+	LuxMaxUtils *lmutil;
 	std::string tmpTrans = "";
 	Matrix3 nodeTransformPos = node->GetObjTMAfterWSM(GetCOREInterface()->GetTime());
 	Matrix3 nodeTransformRot = nodeTransformPos;
