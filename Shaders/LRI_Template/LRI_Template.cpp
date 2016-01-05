@@ -18,6 +18,7 @@
 
 
 #define NUM_SUBMATERIALS 1 // TODO: number of sub-materials supported by this plug-in
+#define NUM_SUBTEXTURES 1
 // Reference Indexes
 // 
 #define PBLOCK_REF NUM_SUBMATERIALS
@@ -63,7 +64,7 @@ public:
 	virtual TSTR GetSubMtlTVName(int i);
 
 	// SubTexmap access methods
-	virtual int     NumSubTexmaps() {return 0;}
+	virtual int     NumSubTexmaps() { return NUM_SUBTEXTURES; }
 	virtual Texmap* GetSubTexmap(int i);
 	virtual void    SetSubTexmap(int i, Texmap *m);
 	virtual TSTR    GetSubTexmapSlotName(int i);
@@ -102,6 +103,7 @@ protected:
 
 private:
 	Mtl*          submtl[NUM_SUBMATERIALS];  // Fixed size Reference array of sub-materials. (Indexes: 0-(N-1))
+	Texmap*       subtexture[NUM_SUBTEXTURES];
 	IParamBlock2* pblock;					 // Reference that comes AFTER the sub-materials. (Index: N)
 	
 	BOOL          mapOn[NUM_SUBMATERIALS];
@@ -157,31 +159,33 @@ enum {
 
 
 
-static ParamBlockDesc2 LRI_Template_param_blk ( LRI_Template_params, _T("params"),  0, GetLRI_TemplateDesc(), 
+static ParamBlockDesc2 LRI_Template_param_blk ( LRI_Template_params, _T("params"),  0, GetLRI_TemplateDesc(),
 	P_AUTO_CONSTRUCT + P_AUTO_UI, PBLOCK_REF, 
 	//rollout
 	IDD_PANEL, IDS_PARAMS, 0, 0, NULL,
 	// params
-	pb_spin, 			_T("spin"), 		TYPE_FLOAT, 	P_ANIMATABLE, 	IDS_SPIN, 
+	pb_spin, 			_T("spin"), 			TYPE_FLOAT, 	P_ANIMATABLE, 	IDS_SPIN,
 		p_default, 		0.1f, 
 		p_range, 		0.0f,1000.0f, 
-		p_ui, 			TYPE_SPINNER,		EDITTYPE_FLOAT, IDC_EDIT,	IDC_SPIN, 0.01f, 
+		p_ui, 			TYPE_SPINNER,			EDITTYPE_FLOAT, IDC_EDIT,	IDC_SPIN, 0.01f, 
 		p_end,
-	mtl_mat1,			_T("mtl_mat1"),			TYPE_MTL,	P_OWNERS_REF,	IDS_MTL1,
+	mtl_mat1,			_T("mtl_mat1"),			TYPE_MTL,	P_OWNERS_REF,		IDS_MTL1,
 		p_refno,		0,
 		p_submtlno,		0,		
-		p_ui,			TYPE_MTLBUTTON, IDC_MTL1,
+		p_ui,			TYPE_MTLBUTTON,			IDC_MTL1,
 		p_end,
 	mtl_mat1_on,		_T("mtl_mat1_on"),		TYPE_BOOL,		0,				IDS_MTL1ON,
 		p_default,		TRUE,
-		p_ui,			TYPE_SINGLECHEKBOX, IDC_MTLON1,
+		p_ui,			TYPE_SINGLECHEKBOX,		IDC_MTLON1,
 		p_end,
 	prm_color,			_T("color"),			TYPE_RGBA,	P_ANIMATABLE,		IDS_COLOR,
 		p_default, Color(0.5f, 0.5f, 0.5f),
-		p_ui,			TYPE_COLORSWATCH, IDC_SAMP_COLOR,
+		p_ui,			TYPE_COLORSWATCH,		IDC_SAMP_COLOR,
 		p_end,
-	mtl_map, _T("mtl_Map1"), TYPE_TEXMAP, 0, IDS_MAP,
-		p_ui,			TYPE_TEXMAPBUTTON, IDC_SAMP_MAP,
+	mtl_map,			_T("mtl_TexMap1"),		TYPE_TEXMAP,	0,				IDS_MAP,
+		p_subtexno,		0,
+		p_refno,		0,
+		p_ui,			TYPE_TEXMAPBUTTON,		IDC_SAMP_MAP,
 		p_end,
 	prm_ambientcolor,	_T("color"),			TYPE_RGBA,	P_ANIMATABLE,		IDS_COLOR2,
 		p_default, Color(0.0f, 0.0f, 0.0f),
@@ -190,7 +194,7 @@ static ParamBlockDesc2 LRI_Template_param_blk ( LRI_Template_params, _T("params"
 	pb_opacity,			_T("spin"),				TYPE_FLOAT,	P_ANIMATABLE,		IDS_SPIN2,
 		p_default, 1.0f,
 		p_range, 0.0f, 1.0f,
-		p_ui,			TYPE_SPINNER,		EDITTYPE_FLOAT,	IDC_EDIT2,	IDC_SPIN2, 0.01f,
+		p_ui,			TYPE_SPINNER,			EDITTYPE_FLOAT,	IDC_EDIT2,	IDC_SPIN2, 0.01f,
 		p_end,
 	prm_spec,			_T("color"),			TYPE_FLOAT, P_ANIMATABLE,		IDS_COLOR3,
 		p_default,	Color(1.0f, 1.0f, 1.0f),
@@ -199,12 +203,12 @@ static ParamBlockDesc2 LRI_Template_param_blk ( LRI_Template_params, _T("params"
 	pb_shin,			_T("spin"),				TYPE_FLOAT, P_ANIMATABLE,		IDS_SPIN4,
 		p_default, 0.0f,
 		p_range, 0.0f, 1.0f,
-		p_ui,			TYPE_SPINNER,		EDITTYPE_FLOAT, IDC_EDIT4,	IDC_SPIN4, 0.01f,
+		p_ui,			TYPE_SPINNER,			EDITTYPE_FLOAT, IDC_EDIT4,	IDC_SPIN4, 0.01f,
 		p_end,
 	pb_wiresize,		_T("spin"),				TYPE_FLOAT, P_ANIMATABLE,		IDS_SPIN6,
 		p_default, 0.0f,
 		p_range, 0.0f, 100.0f,
-		p_ui,			TYPE_SPINNER,		EDITTYPE_FLOAT, IDC_EDIT6,	IDC_SPIN6, 0.01f,
+		p_ui,			TYPE_SPINNER,			EDITTYPE_FLOAT, IDC_EDIT6,	IDC_SPIN6, 0.01f,
 		p_end,
 	p_end
 	);
@@ -215,16 +219,22 @@ static ParamBlockDesc2 LRI_Template_param_blk ( LRI_Template_params, _T("params"
 LRI_Template::LRI_Template()
 	: pblock(nullptr)
 {
-	for (int i=0; i<NUM_SUBMATERIALS; i++) 
+	for (int i = 0; i < NUM_SUBMATERIALS; i++)
+	{
 		submtl[i] = nullptr;
+		subtexture[i] = nullptr;
+	}
 	Reset();
 }
 
 LRI_Template::LRI_Template(BOOL loading)
 	: pblock(nullptr)
 {
-	for (int i=0; i<NUM_SUBMATERIALS; i++) 
+	for (int i = 0; i < NUM_SUBMATERIALS; i++)
+	{
 		submtl[i] = nullptr;
+		subtexture[i] = nullptr;
+	}
 	
 	if (!loading)
 		Reset();
@@ -300,7 +310,10 @@ RefTargetHandle LRI_Template::GetReference(int i)
 void LRI_Template::SetReference(int i, RefTargetHandle rtarg)
 {
 	if ((i >= 0) && (i < NUM_SUBMATERIALS))
+	{
 		submtl[i] = (Mtl *)rtarg;
+		subtexture[i] = (Texmap *)rtarg;
+	}
 	else if (i == PBLOCK_REF)
 	{
 		pblock = (IParamBlock2 *)rtarg;
@@ -352,6 +365,7 @@ RefResult LRI_Template::NotifyRefChanged(const Interval& /*changeInt*/, RefTarge
 					if (hTarget == submtl[i])
 					{
 						submtl[i] = nullptr;
+						subtexture[i] = nullptr;
 						break;
 					}
 				}
@@ -380,7 +394,7 @@ void LRI_Template::SetSubMtl(int i, Mtl* m)
 	// TODO: Set the material and update the UI
 }
 
-TSTR LRI_Template::GetSubMtlSlotName(int)
+TSTR LRI_Template::GetSubMtlSlotName(int i)
 {
 	// Return i'th sub-material name
 	return _T("");
@@ -393,19 +407,23 @@ TSTR LRI_Template::GetSubMtlTVName(int i)
 
 /*===========================================================================*\
  |	Texmap get and set
- |  By default, we support none
 \*===========================================================================*/
 
-Texmap* LRI_Template::GetSubTexmap(int /*i*/)
+Texmap* LRI_Template::GetSubTexmap(int i)
 {
-	return nullptr;
+	if ((i >= 0) && (i < NUM_SUBTEXTURES))
+		return subtexture[i];
+	return
+		nullptr;
+	//return nullptr;
 }
 
-void LRI_Template::SetSubTexmap(int /*i*/, Texmap* /*m*/)
+void LRI_Template::SetSubTexmap(int i, Texmap* tx)
 {
+	ReplaceReference(i, tx);
 }
 
-TSTR LRI_Template::GetSubTexmapSlotName(int /*i*/)
+TSTR LRI_Template::GetSubTexmapSlotName(int i)
 {
 	return _T("");
 }
@@ -487,17 +505,19 @@ void LRI_Template::NotifyChanged()
 
 void LRI_Template::Update(TimeValue t, Interval& valid)
 {
-	if (!ivalid.InInterval(t)) {
+	if (!ivalid.InInterval(t))
+	{
 
 		ivalid.SetInfinite();
 		pblock->GetValue( mtl_mat1_on, t, mapOn[0], ivalid);
 		pblock->GetValue( pb_spin, t, spin, ivalid);
 
-		for (int i=0; i < NUM_SUBMATERIALS; i++) {
+		for (int i=0; i < NUM_SUBMATERIALS; i++)
+		{
 			if (submtl[i])
 				submtl[i]->Update(t,ivalid);
-			}
 		}
+	}
 	valid &= ivalid;
 }
 
