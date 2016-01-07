@@ -38,7 +38,7 @@ BEGIN
     CONTROL         "",IDC_SAMP_MAP,"CustButton",WS_TABSTOP,24,82,119,13
     CTEXT           "LuxMax Internal Template Material That Include What We Need For Other Materials",IDC_STATIC,10,10,193,23
     CTEXT           "Diffuse Color",IDC_STATIC,150,68,52,11
-    CTEXT           "Clone map/mtl",IDC_STATIC,157,38,48,15
+    CTEXT           "Mat Control",IDC_STATIC,157,38,48,15
     CONTROL         "",IDC_EDIT2,"CustEdit",WS_TABSTOP,24,131,35,10
     CONTROL         "",IDC_SPIN2,"SpinnerControl",0x0,60,131,7,10
     CTEXT           "Transparency",IDC_STATIC,151,132,52,11
