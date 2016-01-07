@@ -13,6 +13,7 @@
 //***************************************************************************/
 
 #include "LRI_Template.h"
+#include <maxscript\maxscript.h>
 
 #define LRI_Template_CLASS_ID	Class_ID(0x64691d17, 0x288d50d9)
 
@@ -66,7 +67,7 @@ public:
 	// SubTexmap access methods
 	virtual int     NumSubTexmaps() { return NUM_SUBTEXTURES; }
 	virtual Texmap* GetSubTexmap(int i);
-	virtual void    SetSubTexmap(int i, Texmap *m);
+	virtual void    SetSubTexmap(int i, Texmap *tx);
 	virtual TSTR    GetSubTexmapSlotName(int i);
 	virtual TSTR    GetSubTexmapTVName(int i);
 
@@ -159,8 +160,8 @@ enum {
 
 
 
-static ParamBlockDesc2 LRI_Template_param_blk ( LRI_Template_params, _T("params"),  0, GetLRI_TemplateDesc(),
-	P_AUTO_CONSTRUCT + P_AUTO_UI, PBLOCK_REF, 
+static ParamBlockDesc2 LRI_Template_param_blk (
+	LRI_Template_params, _T("params"),  0, GetLRI_TemplateDesc(),	P_AUTO_CONSTRUCT + P_AUTO_UI, PBLOCK_REF, 
 	//rollout
 	IDD_PANEL, IDS_PARAMS, 0, 0, NULL,
 	// params
@@ -182,9 +183,9 @@ static ParamBlockDesc2 LRI_Template_param_blk ( LRI_Template_params, _T("params"
 		p_default, Color(0.5f, 0.5f, 0.5f),
 		p_ui,			TYPE_COLORSWATCH,		IDC_SAMP_COLOR,
 		p_end,
-	mtl_map,			_T("mtl_TexMap1"),		TYPE_TEXMAP,	0,				IDS_MAP,
-		p_subtexno,		0,
+	mtl_map,		_T("mtl_TexMap1"),		TYPE_TEXMAP, P_OWNERS_REF, IDS_MAP,
 		p_refno,		0,
+		p_subtexno,		0,
 		p_ui,			TYPE_TEXMAPBUTTON,		IDC_SAMP_MAP,
 		p_end,
 	prm_ambientcolor,	_T("color"),			TYPE_RGBA,	P_ANIMATABLE,		IDS_COLOR2,
@@ -192,7 +193,7 @@ static ParamBlockDesc2 LRI_Template_param_blk ( LRI_Template_params, _T("params"
 		p_ui,			TYPE_COLORSWATCH,		IDC_SAMP_COLOR2,
 		p_end,
 	pb_opacity,			_T("spin"),				TYPE_FLOAT,	P_ANIMATABLE,		IDS_SPIN2,
-		p_default, 1.0f,
+		p_default, 0.0f,
 		p_range, 0.0f, 1.0f,
 		p_ui,			TYPE_SPINNER,			EDITTYPE_FLOAT,	IDC_EDIT2,	IDC_SPIN2, 0.01f,
 		p_end,
@@ -299,25 +300,41 @@ Interval LRI_Template::Validity(TimeValue t)
 
 RefTargetHandle LRI_Template::GetReference(int i)
 {
-	if ((i >= 0) && (i < NUM_SUBMATERIALS))
-		return submtl[i];
+	mprintf(_T("\n GetReference Nubmer is : %i \n"), i);
+	switch (i)
+	{
+		case 0: return subtexture[i]; break;
+		case 1: return pblock; break;
+		default: return submtl[i]; break;
+	}
+
+	/*if ((i >= 0) && (i < NUM_SUBMATERIALS))
+		return subtexture[i];
+		//return submtl[i];
 	else if (i == PBLOCK_REF)
 		return pblock;
 	else
-		return nullptr;
+		return nullptr;*/
 }
 
 void LRI_Template::SetReference(int i, RefTargetHandle rtarg)
 {
-	if ((i >= 0) && (i < NUM_SUBMATERIALS))
+	mprintf(_T("\n SetReference Nubmer is : %i \n"), i);
+	switch (i)
 	{
-		submtl[i] = (Mtl *)rtarg;
+		case 0: subtexture[i] = (Texmap *)rtarg; break;
+		case 1: pblock = (IParamBlock2 *)rtarg; break;
+		default: submtl[i] = (Mtl *)rtarg; break;
+	}
+	/*if ((i >= 0) && (i < NUM_SUBMATERIALS))
+	{
+		//submtl[i] = (Mtl *)rtarg;
 		subtexture[i] = (Texmap *)rtarg;
 	}
 	else if (i == PBLOCK_REF)
 	{
 		pblock = (IParamBlock2 *)rtarg;
-	}
+	}*/
 }
 
 TSTR LRI_Template::SubAnimName(int i)
@@ -390,6 +407,7 @@ Mtl* LRI_Template::GetSubMtl(int i)
 
 void LRI_Template::SetSubMtl(int i, Mtl* m)
 {
+	mprintf(_T("\n SetSubMtl Nubmer is : %i \n"), i);
 	ReplaceReference(i,m);
 	// TODO: Set the material and update the UI
 }
@@ -411,6 +429,7 @@ TSTR LRI_Template::GetSubMtlTVName(int i)
 
 Texmap* LRI_Template::GetSubTexmap(int i)
 {
+	mprintf(_T("\n GetSubTexmap Nubmer is : %i \n"), i);
 	if ((i >= 0) && (i < NUM_SUBTEXTURES))
 		return subtexture[i];
 	return
@@ -420,7 +439,18 @@ Texmap* LRI_Template::GetSubTexmap(int i)
 
 void LRI_Template::SetSubTexmap(int i, Texmap* tx)
 {
+	mprintf(_T("\n SetSubTexmap Nubmer is : %i \n"), i);
 	ReplaceReference(i, tx);
+	if (i == 0)
+	{
+		LRI_Template_param_blk.InvalidateUI(mtl_map);
+		ivalid.SetEmpty();
+	}
+	else if (i == 1)
+	{
+		LRI_Template_param_blk.InvalidateUI(mtl_mat1);
+		ivalid.SetEmpty();
+	}
 }
 
 TSTR LRI_Template::GetSubTexmapSlotName(int i)
@@ -516,6 +546,11 @@ void LRI_Template::Update(TimeValue t, Interval& valid)
 		{
 			if (submtl[i])
 				submtl[i]->Update(t,ivalid);
+		}
+		for (int i = 0; i < NUM_SUBTEXTURES; i++)
+		{
+			if (subtexture[i])
+				subtexture[i]->Update(t, ivalid);
 		}
 	}
 	valid &= ivalid;
