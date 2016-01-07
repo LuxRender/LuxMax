@@ -184,7 +184,7 @@ static ParamBlockDesc2 LRI_Template_param_blk (
 		p_ui,			TYPE_COLORSWATCH,		IDC_SAMP_COLOR,
 		p_end,
 	mtl_map,		_T("mtl_TexMap1"),		TYPE_TEXMAP, P_OWNERS_REF, IDS_MAP,
-		p_refno,		0,
+		p_refno,		2,
 		p_subtexno,		0,
 		p_ui,			TYPE_TEXMAPBUTTON,		IDC_SAMP_MAP,
 		p_end,
@@ -303,9 +303,9 @@ RefTargetHandle LRI_Template::GetReference(int i)
 	mprintf(_T("\n GetReference Nubmer is : %i \n"), i);
 	switch (i)
 	{
-		case 0: return subtexture[i]; break;
+		case 0: return submtl[i]; break;
 		case 1: return pblock; break;
-		default: return submtl[i]; break;
+		default: return subtexture[i-2]; break;
 	}
 
 	/*if ((i >= 0) && (i < NUM_SUBMATERIALS))
@@ -322,9 +322,9 @@ void LRI_Template::SetReference(int i, RefTargetHandle rtarg)
 	mprintf(_T("\n SetReference Nubmer is : %i \n"), i);
 	switch (i)
 	{
-		case 0: subtexture[i] = (Texmap *)rtarg; break;
+		case 0: submtl[i] = (Mtl *)rtarg; break;
 		case 1: pblock = (IParamBlock2 *)rtarg; break;
-		default: submtl[i] = (Mtl *)rtarg; break;
+		default: subtexture[i-2] = (Texmap *)rtarg; break;
 	}
 	/*if ((i >= 0) && (i < NUM_SUBMATERIALS))
 	{
@@ -409,7 +409,16 @@ void LRI_Template::SetSubMtl(int i, Mtl* m)
 {
 	mprintf(_T("\n SetSubMtl Nubmer is : %i \n"), i);
 	ReplaceReference(i,m);
-	// TODO: Set the material and update the UI
+	if (i == 0)
+	{
+		LRI_Template_param_blk.InvalidateUI(mtl_mat1);
+		ivalid.SetEmpty();
+	}
+	else if (i == 2)
+	{
+		LRI_Template_param_blk.InvalidateUI(mtl_map);
+		ivalid.SetEmpty();
+	}
 }
 
 TSTR LRI_Template::GetSubMtlSlotName(int i)
@@ -429,7 +438,7 @@ TSTR LRI_Template::GetSubMtlTVName(int i)
 
 Texmap* LRI_Template::GetSubTexmap(int i)
 {
-	mprintf(_T("\n GetSubTexmap Nubmer is : %i \n"), i);
+	mprintf(_T("\n GetSubTexmap Nubmer ----------->>>  is : %i \n"), i);
 	if ((i >= 0) && (i < NUM_SUBTEXTURES))
 		return subtexture[i];
 	return
@@ -439,14 +448,14 @@ Texmap* LRI_Template::GetSubTexmap(int i)
 
 void LRI_Template::SetSubTexmap(int i, Texmap* tx)
 {
-	mprintf(_T("\n SetSubTexmap Nubmer is : %i \n"), i);
-	ReplaceReference(i, tx);
+	mprintf(_T("\n SetSubTexmap Nubmer ----------->>>  is : %i \n"), i);
+	ReplaceReference(i+2, tx);
 	if (i == 0)
 	{
 		LRI_Template_param_blk.InvalidateUI(mtl_map);
 		ivalid.SetEmpty();
 	}
-	else if (i == 1)
+	else if (i == 2)
 	{
 		LRI_Template_param_blk.InvalidateUI(mtl_mat1);
 		ivalid.SetEmpty();
