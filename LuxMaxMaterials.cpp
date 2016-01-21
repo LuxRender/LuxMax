@@ -35,6 +35,9 @@ using std::min;
 #include <iparamb2.h>
 #include <iparamb.h>
 #include "path.h"
+#include <bitmap.h>
+#include "AssetManagement/iassetmanager.h"
+#include "IFileResolutionManager.h"
 //#include "AssetType.h"
 #include "IFileResolutionManager.h"
 #include <boost/filesystem/operations.hpp>
@@ -74,10 +77,38 @@ LuxMaxMaterials::~LuxMaxMaterials()
 {
 }
 
-//std::string LuxMaxMaterials::getMaterialDiffuseTexturePath(::Mtl* mat)
-//{
+std::string LuxMaxMaterials::getMaterialDiffuseTexturePath(::Mtl* mat)
+{
+	Texmap *tex;
+	Interval      ivalid;
+	std::string texPathString = "";
 
-//}
+	if (mat->ClassID() == LR_INTERNAL_MAT_TEMPLATE_CLASSID)
+	{
+		IParamBlock2 *pBlock = mat->GetParamBlock(0);
+		tex = pBlock->GetTexmap(4, GetCOREInterface()->GetTime(), 0);		
+		if (tex != NULL)
+		{
+			BitmapTex *bmt = (BitmapTex*)tex;
+			BitmapInfo bi(bmt->GetMapName());
+			BMMGetFullFilename(&bi);
+			MaxSDK::AssetManagement::AssetUser BFile = bi.GetAsset();
+
+			texPathString = lmutil->ToNarrow(BFile.GetFullFilePath());
+		}
+	}
+
+	//Returns "" if unsupported or no texture is defined.
+	if (texPathString != "")
+	{
+		return texPathString;
+	}
+	else
+	{
+		return "";
+	}
+	
+}
 
 Point3 LuxMaxMaterials::getMaterialDiffuseColor(::Mtl* mat)
 {
@@ -108,54 +139,6 @@ Point3 LuxMaxMaterials::getMaterialDiffuseColor(::Mtl* mat)
 	return diffcolor;
 }
 
-//void LuxMaxMaterials::defineTexture(BitmapTex* bmTex, luxcore::Scene &scene, std::string textureName)
-//{
-//	std::string texString = "";
-//	/*
-//	Type: imagemap
-//
-//	Property name 						Property type 	Default value 	Description
-//	scene.textures.<texture name>.type 	string 			"imagemap"   	type of texture
-//	scene.textures.<texture name>.file 	string 			"image.png" 	name of the image file
-//	scene.textures.<texture name>.gamma float			2.2				gamma correction value used in the image
-//	scene.textures.<texture name>.gain 	float 			1.0 			image values are multiplied by gain value
-//
-//		Example data:
-//		scene.textures.tex.type = imagemap
-//		scene.textures.tex.file = scenes / bump / map.png
-//		scene.textures.tex.gain = 0.6
-//		scene.textures.tex.mapping.uvscale = 16 - 16
-//	*/
-//
-//	// http://docs.autodesk.com/3DSMAX/16/ENU/3ds-Max-SDK-Programmer-Guide/files/GUID-50105419-69CD-4EF0-B96F-D59BBD46C743.htm
-//
-//	texString.append("scene.textures.");
-//	texString.append(textureName + "\n");
-//	
-//
-//	Texmap* tm = (BitmapTex*)bmTex;
-//	BitmapTex *bmt = (BitmapTex*)tm;
-//	BitmapInfo *btinfo = (BitmapInfo*)tm;
-//	//std::string str = getstring(tm->GetFullName());
-//	//mprintf(_T("\n Defining texture file named: %s \n", lmutil->getstring(btinfo->Filename())));
-//	
-//	IFileResolutionManager* pFRM = IFileResolutionManager::GetInstance();
-//	MaxSDK::Util::Path path(btinfo->Filename());
-//	if (pFRM->GetFullFilePath(path, MaxSDK::AssetManagement::kBitmapAsset))
-//	{
-//		// path now holds a fully qualified path
-//		texString.append("scene.textures." + textureName + ".file = " + path.GetCStr);
-//		mprintf(_T("\n Defining texture file path: %s \n", path.GetCStr));
-//	}
-//	else
-//	{
-//		// the bitmap file could not be found using 3ds Max asset
-//		// resolution rules. The value of path is left unchanged
-//	}
-//
-//	
-//}
-
 void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 {
 	const wchar_t *matName = L"";
@@ -165,8 +148,6 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 	std::wstring replacedMaterialName = std::wstring(tmpMatName.begin(), tmpMatName.end());
 	matName = replacedMaterialName.c_str();
 	
-	//if (scene->IsMaterialDefined(ToNarrow(matName)) == false)
-	//{
 	std::string objString = "";
 	objString.append("scene.materials.");
 	objString.append(lmutil->ToNarrow(matName));
@@ -193,7 +174,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 			ioroutside = iorinside;
 		}
 		OutputDebugStringW(matType);
-		//((getstring(matType) == "Glass - Translucent") ||
+
 		if ((lmutil->getstring(matType) == "Metal - Brushed"))
 		{
 			//metal2
@@ -275,10 +256,6 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 			luxrays::Property("")("")
 			);
 
-		/*scene.textures.check.type = checkerboard2d
-		scene.textures.check.texture1 = 0.7 0.0 0.0
-		scene.textures.check.texture2 = 0.7 0.7 0.0
-		scene.textures.check.mapping.uvscale = 16 -16*/
 		mprintf(_T("\n Creating Cheker material %i \n"));
 		scene.Parse(
 			luxrays::Property("scene.textures.check.type")("checkerboard2d") <<
@@ -287,70 +264,51 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 			luxrays::Property("scene.textures.check.mapping.uvscale")(16.0f, 16.0f)
 			);
 		mprintf(_T("\n Creating Cheker 01 %i \n"));
-		/*scene->Parse(
-		Property(tmpMatStr)("checkerboard2d") <<
-		Property("")("")
-		);
+	}
+	else if (mat->ClassID() == LR_INTERNAL_MAT_TEMPLATE_CLASSID)
+	{
 
-		::Point3 diffcol;
-		diffcol = getMaterialDiffuseColor(mat);
-		::std::string tmpMatStr;
+		scene.Parse(
+			luxrays::Property(objString)("matte") <<
+			luxrays::Property("")("")
+			);
 
-		tmpMatStr.append("scene.textures.");
-		tmpMatStr.append(ToNarrow(matName));
-		tmpMatStr.append(".type");
+		if (getMaterialDiffuseTexturePath(mat) == "")
+		{
+			::Point3 diffcol;
+			diffcol = getMaterialDiffuseColor(mat);
+			::std::string tmpMatStr;
+			tmpMatStr.append("scene.materials.");
+			tmpMatStr.append(lmutil->ToNarrow(matName));
+			tmpMatStr.append(".kd");
 
-		mprintf(_T("\n Creating Cheker material %i \n"));
-		scene->Parse(
-		Property(tmpMatStr)("checkerboard2d") <<
-		Property("")("")
-		);
-		tmpMatStr = "";
+			scene.Parse(
+				luxrays::Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
+				luxrays::Property("")("")
+				);
+			tmpMatStr = "";
+		}
+		else
+		{
+			//If the template material has a diffuse texture applied.
+			scene.Parse(
+				luxrays::Property("scene.textures.tex.type")("imagemap") <<
+				luxrays::Property("scene.textures.tex.file")(getMaterialDiffuseTexturePath(mat)) <<
+				luxrays::Property("scene.textures.tex.gain")(0.6f) <<
+				luxrays::Property("scene.textures.tex.mapping.uvscale")(1.0f, 1.0f)
+				);
 
-		/*tmpMatStr.append("scene.textures.");
-		tmpMatStr.append(ToNarrow(matName));
-		tmpMatStr.append(".texture1");
+			::std::string tmpMatStr;
+			tmpMatStr.append("scene.materials.");
+			tmpMatStr.append(lmutil->ToNarrow(matName));
+			tmpMatStr.append(".kd");
 
-		mprintf(_T("\n tx01 %i \n"));
-		scene->Parse(
-		Property(tmpMatStr)(float(diffcol.x)/256, float(diffcol.y)/256, float(diffcol.z)/256) <<
-		Property("")("")
-		);
-
-		tmpMatStr = "";
-
-		tmpMatStr.append("scene.textures.");
-		tmpMatStr.append(ToNarrow(matName));
-		tmpMatStr.append(".texture2");
-
-		mprintf(_T("\n tx02 %i \n"));
-		scene->Parse(
-		Property(tmpMatStr)(float(1), float(1), float(1)) <<
-		Property("")("")
-		);
-
-		tmpMatStr = "";
-
-		tmpMatStr.append("scene.textures.");
-		tmpMatStr.append(ToNarrow(matName));
-		tmpMatStr.append(".mapping.uvscale");
-
-		mprintf(_T("\n tx03 %i \n"));
-		scene->Parse(
-		Property(tmpMatStr)("16 - 16") <<
-		Property("")("")
-		);
-
-		/*tmpMatStr.append("scene.materials.");
-		tmpMatStr.append(ToNarrow(matName));
-		tmpMatStr.append(".texture2");
-
-		scene->Parse(
-		Property(tmpMatStr)(float(diffcol.x) / 256, float(diffcol.y) / 256, float(diffcol.z) / 256) <<
-		Property("")("")
-		);*/
-		//tmpMatStr = "";
-
+			scene.Parse(
+				luxrays::Property(tmpMatStr)("tex") <<
+				luxrays::Property("")("")
+				);
+			tmpMatStr = "";
+		}
 	}
 	else	//Parse as matte material.
 	{
@@ -359,7 +317,6 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 			luxrays::Property(objString)("matte") <<
 			luxrays::Property("")("")
 			);
-		//objString = "";
 
 		::Point3 diffcol;
 		diffcol = getMaterialDiffuseColor(mat);
@@ -367,14 +324,13 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 		tmpMatStr.append("scene.materials.");
 		tmpMatStr.append(lmutil->ToNarrow(matName));
 		tmpMatStr.append(".kd");
-		//mprintf(L"Material kd string: %s\n", tmpMatStr.c_str());
+
 		scene.Parse(
 			luxrays::Property(tmpMatStr)(float(diffcol.x), float(diffcol.y), float(diffcol.z)) <<
 			luxrays::Property("")("")
 			);
 		tmpMatStr = "";
 	}
-
 }
 
 bool LuxMaxMaterials::isSupportedMaterial(::Mtl* mat)
@@ -396,6 +352,10 @@ bool LuxMaxMaterials::isSupportedMaterial(::Mtl* mat)
 		return true;
 	}
 	else if (mat->ClassID() == LUXCORE_CHEKER_CLASSID)
+	{
+		return true;
+	}
+	else if (mat->ClassID() == LR_INTERNAL_MAT_TEMPLATE_CLASSID)
 	{
 		return true;
 	}

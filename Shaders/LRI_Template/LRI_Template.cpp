@@ -300,7 +300,7 @@ Interval LRI_Template::Validity(TimeValue t)
 
 RefTargetHandle LRI_Template::GetReference(int i)
 {
-	mprintf(_T("\n GetReference Nubmer is : %i \n"), i);
+	//mprintf(_T("\n GetReference Nubmer is : %i \n"), i);
 	switch (i)
 	{
 		case 0: return submtl[i]; break;
@@ -319,7 +319,7 @@ RefTargetHandle LRI_Template::GetReference(int i)
 
 void LRI_Template::SetReference(int i, RefTargetHandle rtarg)
 {
-	mprintf(_T("\n SetReference Nubmer is : %i \n"), i);
+	//mprintf(_T("\n SetReference Nubmer is : %i \n"), i);
 	switch (i)
 	{
 		case 0: submtl[i] = (Mtl *)rtarg; break;
@@ -407,7 +407,7 @@ Mtl* LRI_Template::GetSubMtl(int i)
 
 void LRI_Template::SetSubMtl(int i, Mtl* m)
 {
-	mprintf(_T("\n SetSubMtl Nubmer is : %i \n"), i);
+	//mprintf(_T("\n SetSubMtl Nubmer is : %i \n"), i);
 	ReplaceReference(i,m);
 	if (i == 0)
 	{
@@ -438,7 +438,7 @@ TSTR LRI_Template::GetSubMtlTVName(int i)
 
 Texmap* LRI_Template::GetSubTexmap(int i)
 {
-	mprintf(_T("\n GetSubTexmap Nubmer ----------->>>  is : %i \n"), i);
+	//mprintf(_T("\n GetSubTexmap Nubmer ----------->>>  is : %i \n"), i);
 	if ((i >= 0) && (i < NUM_SUBTEXTURES))
 		return subtexture[i];
 	return
@@ -448,7 +448,7 @@ Texmap* LRI_Template::GetSubTexmap(int i)
 
 void LRI_Template::SetSubTexmap(int i, Texmap* tx)
 {
-	mprintf(_T("\n SetSubTexmap Nubmer ----------->>>  is : %i \n"), i);
+	//mprintf(_T("\n SetSubTexmap Nubmer ----------->>>  is : %i \n"), i);
 	ReplaceReference(i+2, tx);
 	if (i == 0)
 	{
