@@ -248,50 +248,6 @@ unsigned int* CreateOptimizeFaceIndices(vertexPtr raw, int rawcount, vertexPtr o
 	return faces;
 }
 
-//void BuildMesh(::Mesh& mesh, vertexPtr verts, int nverts, unsigned int* faces, int nfaces)
-//{
-//	mesh.setNumVerts(nverts);
-//	mesh.setNumFaces(nfaces);
-//	mesh.setNumTVerts(nverts);
-//	mesh.setNumTVFaces(nfaces);
-//
-//	MeshNormalSpec* nspec = new MeshNormalSpec;
-//	nspec->SetNumFaces(nfaces);
-//	nspec->SetNumNormals(nverts);
-//
-//	for (int v = 0; v < nverts; ++v)
-//	{
-//		mesh.setVert(v, verts[v].p);
-//		mesh.setTVert(v, verts[v].uv);
-//		nspec->Normal(v) = verts[v].n;
-//	}
-//	int fi = 0;
-//	for (int f = 0; f < nfaces * 3; f += 3)
-//	{
-//		int a = faces[f];
-//		int b = faces[f + 1];
-//		int c = faces[f + 2];
-//		mesh.faces[fi].setVerts(a, b, c);
-//		mesh.tvFace[fi].setTVerts(a, b, c);
-//		mesh.faces[fi].setEdgeVisFlags(1, 1, 1);
-//		mesh.faces[fi].setMatID(verts[a].mid);
-//		nspec->Face(fi).SetNormalID(0, a);
-//		nspec->Face(fi).SetNormalID(1, b);
-//		nspec->Face(fi).SetNormalID(2, c);
-//		fi++;
-//	}
-//	nspec->MakeNormalsExplicit(false);
-//
-//	MeshNormalSpec *meshNormals = (MeshNormalSpec *)mesh.GetInterface(MESH_NORMAL_SPEC_INTERFACE);
-//	if (meshNormals)
-//	{
-//		*meshNormals = *nspec;
-//		meshNormals->SetParent(&mesh);
-//	}
-//	delete nspec;
-//}
-
-
 void LuxMaxMesh::createMesh(INode * currNode, luxcore::Scene &scene)
 {
 	Object*	obj;
@@ -305,12 +261,12 @@ void LuxMaxMesh::createMesh(INode * currNode, luxcore::Scene &scene)
 
 	if (!fConvertedToTriObject)
 	{
-		mprintf(L"Debug: Did not triangulate object : %s\n", currNode->GetName());
+		//mprintf(L"Debug: Did not triangulate object : %s\n", currNode->GetName());
 		exit;
 	}
 	else
 	{
-		mprintf(L"Info: Creating mesh for object : %s\n", currNode->GetName());
+		//mprintf(L"Info: Creating mesh for object : %s\n", currNode->GetName());
 		const wchar_t *objName = L"";
 		std::string tmpName = lxmUtils->ToNarrow(currNode->GetName());
 		lxmUtils->removeUnwatedChars(tmpName);
@@ -321,7 +277,7 @@ void LuxMaxMesh::createMesh(INode * currNode, luxcore::Scene &scene)
 
 		if (p_trimesh->getNumFaces() < 1)
 		{
-			mprintf(L"Debug: Did not triangulate object : %s, numfaces < 1\n", currNode->GetName());
+			//mprintf(L"Debug: Did not triangulate object : %s, numfaces < 1\n", currNode->GetName());
 			exit;
 		}
 		p_trimesh->checkNormals(true);
@@ -368,7 +324,7 @@ void LuxMaxMesh::createMesh(INode * currNode, luxcore::Scene &scene)
 			for (int u = 0; u < optcount; u++)
 			{
 				uv[u].u = optverts[u].uv.x;
-				uv[u].v = optverts[u].uv.y;
+				uv[u].v = optverts[u].uv.y * -1;
 			}
 		}
 
@@ -379,13 +335,13 @@ void LuxMaxMesh::createMesh(INode * currNode, luxcore::Scene &scene)
 		else
 		{
 			// Define the object - with UV
-			scene.DefineMesh(lxmUtils->ToNarrow(objName), optcount, numTriangles, p, vi, n, NULL, NULL, NULL);
+			scene.DefineMesh(lxmUtils->ToNarrow(objName), optcount, numTriangles, p, vi, n, uv, NULL, NULL);
 		}
 
 		delete[] rawverts;
 		delete[] optverts;
 		delete[] indices;
-		delete[] uv;
+		//delete[] uv;
 
 		p = NULL;
 		vi = NULL;
