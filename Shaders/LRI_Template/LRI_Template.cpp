@@ -20,9 +20,10 @@
 
 #define NUM_SUBMATERIALS 1 // TODO: number of sub-materials supported by this plug-in
 #define NUM_SUBTEXTURES 1
+#define Num_REF 2 
 // Reference Indexes
 // 
-#define PBLOCK_REF NUM_SUBMATERIALS
+#define PBLOCK_REF 1
 
 class LRI_Template : public Mtl {
 public:
@@ -90,7 +91,7 @@ public:
 	virtual TSTR SubAnimName(int i);
 
 	// TODO: Maintain the number or references here
-	virtual int NumRefs() { return 1 + NUM_SUBMATERIALS; }
+	virtual int NumRefs() { return 1 + Num_REF; }
 	virtual RefTargetHandle GetReference(int i);
 
 	virtual int NumParamBlocks() { return 1; }					  // return number of ParamBlocks in this instance
@@ -110,6 +111,7 @@ private:
 	BOOL          mapOn[NUM_SUBMATERIALS];
 	float         spin;
 	Interval      ivalid;
+	Interval	  mapValid;
 };
 
 
@@ -144,7 +146,7 @@ enum { LRI_Template_params };
 
 
 //TODO: Add enums for various parameters
-enum { 
+enum {
 	pb_spin,
 	mtl_mat1,
 	mtl_mat1_on,
@@ -183,7 +185,7 @@ static ParamBlockDesc2 LRI_Template_param_blk (
 		p_default, Color(0.5f, 0.5f, 0.5f),
 		p_ui,			TYPE_COLORSWATCH,		IDC_SAMP_COLOR,
 		p_end,
-	mtl_map,		_T("mtl_TexMap1"),		TYPE_TEXMAP, P_OWNERS_REF, IDS_MAP,
+	mtl_map,		_T("mtl_TexMap1"),		TYPE_TEXMAP,	P_OWNERS_REF,		IDS_MAP,
 		p_refno,		2,
 		p_subtexno,		0,
 		p_ui,			TYPE_TEXMAPBUTTON,		IDC_SAMP_MAP,
@@ -250,12 +252,21 @@ LRI_Template::~LRI_Template()
 void LRI_Template::Reset()
 {
 	ivalid.SetEmpty();
+	mapValid.SetEmpty();
 	// Always have to iterate backwards when deleting references.
-	for (int i = NUM_SUBMATERIALS - 1; i >= 0; i--) {
-		if( submtl[i] ){
+	for (int i = NUM_SUBMATERIALS - 1; i >= 0; i--)
+	{
+		if( submtl[i] )
+		{
 			DeleteReference(i);
 			DbgAssert(submtl[i] == nullptr);
 			submtl[i] = nullptr;
+		}
+		if (subtexture[i])
+		{
+			DeleteReference(i);
+			DbgAssert(subtexture[i] == nullptr);
+			subtexture[i] = nullptr;
 		}
 		mapOn[i] = FALSE;
 	}
@@ -287,8 +298,9 @@ Interval LRI_Template::Validity(TimeValue t)
 	{
 		if (submtl[i])
 			valid &= submtl[i]->Validity(t);
+		if (subtexture[i])
+			valid &= subtexture[i]->Validity(t);
 	}
-
 	float u;
 	pblock->GetValue(pb_spin,t,u,valid);
 	return valid;
@@ -307,52 +319,35 @@ RefTargetHandle LRI_Template::GetReference(int i)
 		case 1: return pblock; break;
 		default: return subtexture[i-2]; break;
 	}
-
-	/*if ((i >= 0) && (i < NUM_SUBMATERIALS))
-		return subtexture[i];
-		//return submtl[i];
-	else if (i == PBLOCK_REF)
-		return pblock;
-	else
-		return nullptr;*/
 }
 
 void LRI_Template::SetReference(int i, RefTargetHandle rtarg)
 {
-	//mprintf(_T("\n SetReference Nubmer is : %i \n"), i);
+	//mprintf(_T("\n SetReference Nubmer is : -> %i \n"), i);
 	switch (i)
 	{
 		case 0: submtl[i] = (Mtl *)rtarg; break;
 		case 1: pblock = (IParamBlock2 *)rtarg; break;
 		default: subtexture[i-2] = (Texmap *)rtarg; break;
 	}
-	/*if ((i >= 0) && (i < NUM_SUBMATERIALS))
-	{
-		//submtl[i] = (Mtl *)rtarg;
-		subtexture[i] = (Texmap *)rtarg;
-	}
-	else if (i == PBLOCK_REF)
-	{
-		pblock = (IParamBlock2 *)rtarg;
-	}*/
 }
 
 TSTR LRI_Template::SubAnimName(int i)
 {
 	if ((i >= 0) && (i < NUM_SUBMATERIALS))
 		return GetSubMtlTVName(i);
-	else 
-		return TSTR(_T(""));
+	else
+		return GetSubTexmapTVName(i-2);
 }
 
 Animatable* LRI_Template::SubAnim(int i)
 {
-	if ((i >= 0) && (i < NUM_SUBMATERIALS))
-		return submtl[i];
-	else if (i == PBLOCK_REF)
-		return pblock;
-	else
-		return nullptr;
+	switch (i)
+	{
+	case 0: return submtl[i];
+	case 1: return pblock;
+	default: return subtexture[i - 2];
+	}
 }
 
 RefResult LRI_Template::NotifyRefChanged(const Interval& /*changeInt*/, RefTargetHandle hTarget, 
@@ -361,7 +356,8 @@ RefResult LRI_Template::NotifyRefChanged(const Interval& /*changeInt*/, RefTarge
 	switch (message) {
 	case REFMSG_CHANGE:
 		{
-			ivalid.SetEmpty();
+		ivalid.SetEmpty();
+		mapValid.SetEmpty();
 			if (hTarget == pblock)
 			{
 				ParamID changing_param = pblock->LastNotifyParamID();
@@ -382,6 +378,10 @@ RefResult LRI_Template::NotifyRefChanged(const Interval& /*changeInt*/, RefTarge
 					if (hTarget == submtl[i])
 					{
 						submtl[i] = nullptr;
+						break;
+					}
+					if (hTarget == subtexture[i])
+					{
 						subtexture[i] = nullptr;
 						break;
 					}
@@ -408,23 +408,18 @@ Mtl* LRI_Template::GetSubMtl(int i)
 void LRI_Template::SetSubMtl(int i, Mtl* m)
 {
 	//mprintf(_T("\n SetSubMtl Nubmer is : %i \n"), i);
-	ReplaceReference(i,m);
+	ReplaceReference(i , m);
 	if (i == 0)
 	{
-		LRI_Template_param_blk.InvalidateUI(mtl_mat1);
-		ivalid.SetEmpty();
-	}
-	else if (i == 2)
-	{
 		LRI_Template_param_blk.InvalidateUI(mtl_map);
-		ivalid.SetEmpty();
+		mapValid.SetEmpty();
 	}
 }
 
-TSTR LRI_Template::GetSubMtlSlotName(int i)
+TSTR LRI_Template::GetSubMtlSlotName(int /*i*/)
 {
 	// Return i'th sub-material name
-	return _T("");
+	return _T("Sub Material");
 }
 
 TSTR LRI_Template::GetSubMtlTVName(int i)
@@ -438,33 +433,27 @@ TSTR LRI_Template::GetSubMtlTVName(int i)
 
 Texmap* LRI_Template::GetSubTexmap(int i)
 {
-	//mprintf(_T("\n GetSubTexmap Nubmer ----------->>>  is : %i \n"), i);
+	//mprintf(_T("\n GetSubTexmap Nubmer ----------->>>  is : Get %i \n"), i);
 	if ((i >= 0) && (i < NUM_SUBTEXTURES))
 		return subtexture[i];
 	return
 		nullptr;
-	//return nullptr;
 }
 
 void LRI_Template::SetSubTexmap(int i, Texmap* tx)
 {
 	//mprintf(_T("\n SetSubTexmap Nubmer ----------->>>  is : %i \n"), i);
-	ReplaceReference(i+2, tx);
+	ReplaceReference(i +2, tx);
 	if (i == 0)
 	{
 		LRI_Template_param_blk.InvalidateUI(mtl_map);
-		ivalid.SetEmpty();
-	}
-	else if (i == 2)
-	{
-		LRI_Template_param_blk.InvalidateUI(mtl_mat1);
-		ivalid.SetEmpty();
+		mapValid.SetEmpty();
 	}
 }
 
-TSTR LRI_Template::GetSubTexmapSlotName(int i)
+TSTR LRI_Template::GetSubTexmapSlotName(int /*i*/)
 {
-	return _T("");
+	return _T("Difuse Map");
 }
 
 TSTR LRI_Template::GetSubTexmapTVName(int i)
@@ -480,13 +469,14 @@ TSTR LRI_Template::GetSubTexmapTVName(int i)
 \*===========================================================================*/
 
 #define MTL_HDR_CHUNK 0x4000
+#define PARAM2_CHUNK 0x1010
 
 IOResult LRI_Template::Save(ISave* isave)
 {
 	IOResult res;
 	isave->BeginChunk(MTL_HDR_CHUNK);
 	res = MtlBase::Save(isave);
-	if (res!=IO_OK) 
+	if (res!=IO_OK)
 		return res;
 	isave->EndChunk();
 
@@ -527,12 +517,17 @@ RefTargetHandle LRI_Template::Clone(RemapDir &remap)
 	mnew->ReplaceReference(PBLOCK_REF,remap.CloneRef(pblock));
 	// Next clone the sub-materials
 	mnew->ivalid.SetEmpty();
-	for (int i = 0; i < NUM_SUBMATERIALS; i++) {
+	mnew->mapValid.SetEmpty();
+	for (int i = 0; i < NUM_SUBMATERIALS; i++) 
+	{
 		mnew->submtl[i] = nullptr;
+		mnew->subtexture[i] = nullptr;
 		if (submtl[i])
 			mnew->ReplaceReference(i,remap.CloneRef(submtl[i]));
+		if (subtexture[i])
+			mnew->ReplaceReference(i+2, remap.CloneRef(subtexture[i]));
 		mnew->mapOn[i] = mapOn[i];
-		}
+	}
 	BaseClone(this, mnew, remap);
 	return (RefTargetHandle)mnew;
 	}
@@ -556,12 +551,18 @@ void LRI_Template::Update(TimeValue t, Interval& valid)
 			if (submtl[i])
 				submtl[i]->Update(t,ivalid);
 		}
-		for (int i = 0; i < NUM_SUBTEXTURES; i++)
-		{
+	}
+
+	if (!mapValid.InInterval(t))
+	{
+		mapValid.SetInfinite();
+		for (int i = 0; i<NUM_SUBTEXTURES; i++) {
 			if (subtexture[i])
-				subtexture[i]->Update(t, ivalid);
+				subtexture[i]->Update(t, mapValid);
 		}
 	}
+
+	valid &= mapValid;
 	valid &= ivalid;
 }
 
@@ -631,10 +632,10 @@ float LRI_Template::WireSize(int mtlNum, BOOL backFace)
 void LRI_Template::Shade(ShadeContext& sc)
 {
 	Mtl* subMaterial = mapOn[0] ? submtl[0] : nullptr;
-	if (gbufID) 
+	if (gbufID)
 		sc.SetGBufferID(gbufID);
 
-	if(subMaterial) 
+	if(subMaterial)
 		subMaterial->Shade(sc);
 	// TODO: compute the color and transparency output returned in sc.out.
 }
@@ -649,7 +650,7 @@ Interval LRI_Template::DisplacementValidity(TimeValue t)
 {
 	Mtl* subMaterial = mapOn[0] ? submtl[0] : nullptr;
 
-	Interval iv; 
+	Interval iv;
 	iv.SetInfinite();
 	if(subMaterial) 
 		iv &= subMaterial->DisplacementValidity(t);
