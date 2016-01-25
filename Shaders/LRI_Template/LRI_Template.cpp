@@ -416,10 +416,17 @@ void LRI_Template::SetSubMtl(int i, Mtl* m)
 	}
 }
 
-TSTR LRI_Template::GetSubMtlSlotName(int /*i*/)
+TSTR LRI_Template::GetSubMtlSlotName(int i)
 {
 	// Return i'th sub-material name
-	return _T("Sub Material");
+	if (submtl[i] != NULL)
+	{
+		return submtl[i]->GetName();
+	}
+	else
+	{
+		return _T("");
+	}
 }
 
 TSTR LRI_Template::GetSubMtlTVName(int i)
@@ -451,9 +458,16 @@ void LRI_Template::SetSubTexmap(int i, Texmap* tx)
 	}
 }
 
-TSTR LRI_Template::GetSubTexmapSlotName(int /*i*/)
+TSTR LRI_Template::GetSubTexmapSlotName(int i)
 {
-	return _T("Difuse Map");
+	if (subtexture[i] != NULL)
+	{
+		return subtexture[i]->GetName();
+	}
+	else
+	{
+		return _T("");
+	}
 }
 
 TSTR LRI_Template::GetSubTexmapTVName(int i)
