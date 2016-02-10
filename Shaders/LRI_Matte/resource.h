@@ -37,6 +37,8 @@
 #define IDC_MTLON1                      1498
 #define IDC_DIFFUSE_MAP_ON              1498
 #define IDC_SPIN2                       1499
+#define IDC_BUMP_MAP_ON2                1499
+#define IDC_BUMP_MAP_ON                 1499
 #define IDC_SPIN4                       1501
 #define IDC_SAMP_COLOR2                 1502
 #define IDC_SAMP_COLOR3                 1503

@@ -28,14 +28,15 @@ IDD_PANEL DIALOGEX 0, 0, 217, 102
 STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
-    CTEXT           "Diffuse map",IDC_STATIC,144,53,54,11
+    CTEXT           "Diffuse map",IDC_STATIC,155,53,45,11
     CONTROL         "Custom1",IDC_BUMP_MAP,"CustButton",WS_TABSTOP,16,67,119,13
-    CONTROL         "",IDC_DIFFUSE_MAP_ON,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,143,69,10,10
+    CONTROL         "",IDC_DIFFUSE_MAP_ON,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,143,52,10,10
     CONTROL         "",IDC_SAMP_COLOR,"ColorSwatch",WS_TABSTOP,16,34,35,12
     CONTROL         "",IDC_DIFFUSE_MAP,"CustButton",WS_TABSTOP,16,50,119,13
     CTEXT           "LuxMax Internal Matte Material",IDC_STATIC,10,11,193,12
-    CTEXT           "Diffuse Color",IDC_STATIC,145,36,52,11
-    CTEXT           "Mat Control",IDC_STATIC,153,70,48,15
+    CTEXT           "Diffuse Color",IDC_STATIC,158,36,43,11
+    CTEXT           "Bump map",IDC_STATIC,156,70,40,9
+    CONTROL         "",IDC_BUMP_MAP_ON,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,143,69,10,10
 END
 
 

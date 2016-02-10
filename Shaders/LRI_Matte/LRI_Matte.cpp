@@ -185,9 +185,9 @@ static ParamBlockDesc2 LRI_Matte_param_blk (
 		p_subtexno,		1,
 		p_ui,			TYPE_TEXMAPBUTTON,		IDC_BUMP_MAP,
 		p_end,
-	mtl_bump_map_on,		_T("mtl_bump_map_on"),		TYPE_BOOL,		0,		IDS_DIFFUSE_MAP_ON,
+	mtl_bump_map_on,		_T("mtl_bump_map_on"),		TYPE_BOOL,		0,		IDS_BUMP_MAP_ON,
 		p_default,		TRUE,
-		p_ui,			TYPE_SINGLECHEKBOX,		IDC_DIFFUSE_MAP_ON,
+		p_ui,			TYPE_SINGLECHEKBOX,		IDC_BUMP_MAP_ON,
 		p_end,
 	p_end
 	);
