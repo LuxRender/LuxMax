@@ -1,20 +1,16 @@
-/***************************************************************************
-* Copyright 1998-2015 by authors (see AUTHORS.txt)                        *
-*                                                                         *
-*   This file is part of LuxRender.                                       *
-*                                                                         *
-* Licensed under the Apache License, Version 2.0 (the "License");         *
-* you may not use this file except in compliance with the License.        *
-* You may obtain a copy of the License at                                 *
-*                                                                         *
-*     http://www.apache.org/licenses/LICENSE-2.0                          *
-*                                                                         *
-* Unless required by applicable law or agreed to in writing, software     *
-* distributed under the License is distributed on an "AS IS" BASIS,       *
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.*
-* See the License for the specific language governing permissions and     *
-* limitations under the License.                                          *
-***************************************************************************/
+//**************************************************************************/
+// Copyright (c) 1998-2007 Autodesk, Inc.
+// All rights reserved.
+// 
+// These coded instructions, statements, and computer programs contain
+// unpublished proprietary information written by Autodesk, Inc., and are
+// protected by Federal copyright law. They may not be disclosed to third
+// parties or copied or duplicated in any form, in whole or in part, without
+// the prior written consent of Autodesk, Inc.
+//**************************************************************************/
+// DESCRIPTION: Contains the Dll Entry stuff
+// AUTHOR: 
+//***************************************************************************/
 
 #include "LRI_Matte.h"
 
@@ -23,6 +19,11 @@ extern ClassDesc2* GetLRI_MatteDesc();
 HINSTANCE hInstance;
 int controlsInit = FALSE;
 
+// This function is called by Windows when the DLL is loaded.  This 
+// function may also be called many times during time critical operations
+// like rendering.  Therefore developers need to be careful what they
+// do inside this function.  In the code below, note how after the DLL is
+// loaded the first time only a few statements are executed.
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL,ULONG fdwReason,LPVOID /*lpvReserved*/)
 {
