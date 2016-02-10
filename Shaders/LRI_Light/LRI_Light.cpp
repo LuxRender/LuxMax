@@ -55,7 +55,8 @@ public:
 	virtual void     Shade(ShadeContext& sc);
 
 	// SubMaterial access methods
-	virtual int  NumSubMtls() {return NUM_SUBMATERIALS;}
+	//virtual int  NumSubMtls() {return NUM_SUBMATERIALS;}
+	virtual int  NumSubMtls() { return 0; }
 	virtual Mtl* GetSubMtl(int i);
 	virtual void SetSubMtl(int i, Mtl *m);
 	virtual TSTR GetSubMtlSlotName(int i);

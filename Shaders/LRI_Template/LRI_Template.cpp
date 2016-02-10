@@ -453,7 +453,7 @@ void LRI_Template::SetSubTexmap(int i, Texmap* tx)
 
 TSTR LRI_Template::GetSubTexmapSlotName(int /*i*/)
 {
-	return _T("Difuse Map");
+	return _T("Diffuse Map");
 }
 
 TSTR LRI_Template::GetSubTexmapTVName(int i)
