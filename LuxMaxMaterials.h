@@ -33,10 +33,15 @@ public:
 	void exportMaterial(Mtl* mat, luxcore::Scene &scene);
 	//void exportMaterial(Mtl* mat, luxcore::Scene &scene);
 	std::string LuxMaxMaterials::getMaterialDiffuseTexturePath(::Mtl* mat);
+	std::string LuxMaxMaterials::getMaterialBumpTexturePath(::Mtl* mat);
+	std::string getTextureName(int paramID, ::Mtl* mat);
+	std::string getBumpTextureName(::Mtl* mat);
+	std::string getDiffuseTextureName(::Mtl* mat);
 
 	//void LuxMaxMaterials::defineTexture(BitmapTex* bmTex, luxcore::Scene &scene, std::string textureName);
 	Point3 getMaterialDiffuseColor(::Mtl* mat);
 	bool isSupportedMaterial(::Mtl* mat);
+	std::string getTexturePathFromParamBlockID(int id, ::Mtl* mat);
 	
 };
 

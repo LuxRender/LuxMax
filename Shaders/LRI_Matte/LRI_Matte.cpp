@@ -410,10 +410,11 @@ void LRI_Matte::SetSubMtl(int i, Mtl* m)
 	}
 }
 
-TSTR LRI_Matte::GetSubMtlSlotName(int /*i*/)
+TSTR LRI_Matte::GetSubMtlSlotName(int i)
 {
 	// Return i'th sub-material name
-	return _T("");
+	return submtl[i]->GetName();
+	//return _T("");
 }
 
 TSTR LRI_Matte::GetSubMtlTVName(int i)
@@ -611,7 +612,7 @@ Color LRI_Matte::GetSpecular(int mtlNum, BOOL backFace)
 
 float LRI_Matte::GetXParency(int mtlNum, BOOL backFace)
 {
-	float t = 1.0f;
+	float t = 0.0f;
 	//pblock->GetValue(pb_opacity, 0, t, ivalid);
 	return submtl[0] ? submtl[0]->GetXParency(mtlNum,backFace): t;
 }
