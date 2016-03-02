@@ -46,8 +46,6 @@ using std::min;
 #include <boost/format.hpp>
 #include <maxscript\maxscript.h>
 
-
-
 //Import luxcore into separate namespace to avoid conflict with max SDK includes.
 namespace luxcore
 {
@@ -72,14 +70,12 @@ LuxMaxMaterials::LuxMaxMaterials()
 {
 }
 
-
 LuxMaxMaterials::~LuxMaxMaterials()
 {
 }
 
 std::string LuxMaxMaterials::getTexturePathFromParamBlockID(int paramID, ::Mtl* mat)
 {
-
 	Texmap *tex;
 	Interval      ivalid;
 	std::string texPathString = "";
@@ -134,7 +130,6 @@ std::string LuxMaxMaterials::getDiffuseTextureName(::Mtl* mat)
 	}
 }
 
-
 std::string LuxMaxMaterials::getTextureName(int paramID, ::Mtl* mat)
 {
 	Texmap *tex;
@@ -157,7 +152,6 @@ std::string LuxMaxMaterials::getTextureName(int paramID, ::Mtl* mat)
 	}
 }
 
-
 std::string LuxMaxMaterials::getMaterialBumpTexturePath(::Mtl* mat)
 {
 	if ((mat->ClassID() == LR_INTERNAL_MATTE_CLASSID))
@@ -169,7 +163,6 @@ std::string LuxMaxMaterials::getMaterialBumpTexturePath(::Mtl* mat)
 
 std::string LuxMaxMaterials::getMaterialDiffuseTexturePath(::Mtl* mat)
 {
-
 	if (mat->ClassID() == LR_INTERNAL_MAT_TEMPLATE_CLASSID)
 	{
 		return getTexturePathFromParamBlockID(4, mat);
@@ -186,7 +179,7 @@ Point3 LuxMaxMaterials::getMaterialDiffuseColor(::Mtl* mat)
 	std::string objString;
 	::Point3 diffcolor;
 	Interval      ivalid;
-	
+
 	if (mat->ClassID() == LR_INTERNAL_MATTE_CLASSID)
 	{
 		IParamBlock2 *pBlock = mat->GetParamBlock(0);
@@ -218,7 +211,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 	lmutil->removeUnwatedChars(tmpMatName);
 	std::wstring replacedMaterialName = std::wstring(tmpMatName.begin(), tmpMatName.end());
 	matName = replacedMaterialName.c_str();
-	
+
 	std::string objString = "";
 	objString.append("scene.materials.");
 	objString.append(lmutil->ToNarrow(matName));
@@ -266,7 +259,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 			std::string tmpmat;
 			tmpmat.append(currmat + ".type = glass");
 			tmpmat.append("\n");
-			
+
 			tmpmat.append(currmat + ".ioroutside = " + std::to_string(ioroutside));
 			tmpmat.append("\n");
 
@@ -321,7 +314,6 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 	}
 	else if (mat->ClassID() == LUXCORE_CHEKER_CLASSID)
 	{
-
 		scene.Parse(
 			luxrays::Property(objString)("matte") <<
 			luxrays::Property("")("")
@@ -349,7 +341,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 		std::string bumpMapPath = "";
 		std::string diffuseMapName = "";
 		std::string tmpTexString;
-		
+
 		//Check if there is a bumpmap texture assigned.
 		if (getMaterialBumpTexturePath(mat) != "")
 		{
@@ -364,7 +356,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 				bumpString.append("\n");
 				bumpMapPath = getMaterialBumpTexturePath(mat);
 				bumpMapName = bumpTexName;
-				
+
 				prop.SetFromString(bumpString);
 				scene.Parse(prop);
 			}
@@ -389,7 +381,7 @@ void LuxMaxMaterials::exportMaterial(Mtl* mat, luxcore::Scene &scene)
 			diffuseMapName = getDiffuseTextureName(mat);
 			tmpTexString.append("scene.textures." + diffuseMapName + ".type = imagemap");
 			tmpTexString.append("\n");
-			tmpTexString.append("scene.textures." + diffuseMapName + ".file = " + "\"" + getMaterialDiffuseTexturePath(mat) + "\"" );
+			tmpTexString.append("scene.textures." + diffuseMapName + ".file = " + "\"" + getMaterialDiffuseTexturePath(mat) + "\"");
 			tmpTexString.append("\n");
 			tmpTexString.append("scene.materials." + lmutil->ToNarrow(matName) + ".kd = " + diffuseMapName);
 			tmpTexString.append("\n");

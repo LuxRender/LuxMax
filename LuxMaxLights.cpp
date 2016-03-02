@@ -21,8 +21,6 @@ using std::max;
 using std::min;
 
 #include "max.h"
-//#include "maxtypes.h"
-//#include "interval.h"
 #include "LuxMaxLights.h"
 #include "LuxMaxUtils.h"
 #include <stdio.h>
