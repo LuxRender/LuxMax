@@ -532,6 +532,12 @@ int LuxMaxInternal::Render(
 			case HELPER_CLASS_ID:
 			{
 				doExport = false;
+
+				//If the helper is a group header we loop through and export all objects inside the group.
+				if (currNode->IsGroupHead())
+				{
+					lxmMesh.createMeshesInGroup(currNode, *scene);
+				}
 				break;
 			}
 
@@ -597,6 +603,7 @@ int LuxMaxInternal::Render(
 				{
 					lxmMesh.createMesh(currNode, *scene);
 				}
+
 				break;
 			}
 			}

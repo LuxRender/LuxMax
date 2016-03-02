@@ -45,7 +45,6 @@ using std::min;
 #include <luxcore/luxcore.h>
 #include <luxrays\luxrays.h>
 
-
 using namespace std;
 using namespace luxcore;
 using namespace luxrays;
@@ -56,7 +55,6 @@ LuxMaxUtils *lxmUtils;
 LuxMaxMesh::LuxMaxMesh()
 {
 }
-
 
 LuxMaxMesh::~LuxMaxMesh()
 {
@@ -363,10 +361,8 @@ void LuxMaxMesh::createMesh(INode * currNode, luxcore::Scene &scene)
 
 		if (currNode->GetMtl() == NULL)
 		{
-
 			//TODO: Call a function here that causes it to create a 'dummy' material
 			//inside the material lib..
-
 
 			objString.append("scene.materials.undefined");
 			objString.append(".type");
@@ -395,7 +391,6 @@ void LuxMaxMesh::createMesh(INode * currNode, luxcore::Scene &scene)
 			props.SetFromString(objString);
 			scene.Parse(props);
 			objString = "";
-
 		}
 		else
 		{
@@ -464,5 +459,26 @@ void LuxMaxMesh::createMesh(INode * currNode, luxcore::Scene &scene)
 		objString.append(lxmUtils->getMaxNodeTransform(currNode));
 		props.SetFromString(objString);
 		scene.Parse(props);
+	}
+}
+
+void LuxMaxMesh::createMeshesInGroup(INode *currNode, luxcore::Scene &scene)
+{
+	for (size_t i = 0; i < currNode->NumberOfChildren(); i++)
+	{
+		INode *groupChild;
+		groupChild = currNode->GetChildNode(i);
+		LuxMaxMesh *groupMesh;
+
+		// If the child is a grouphead it means it's a group inside a group
+		// so we send the node back in and loop further down into the groups.
+		if (groupChild->IsGroupHead())
+		{
+			createMeshesInGroup(groupChild, scene);
+		}
+		else
+		{
+			groupMesh->createMesh(groupChild, scene);
+		}
 	}
 }

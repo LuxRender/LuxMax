@@ -29,7 +29,7 @@ class LuxMaxMesh
 public:
 	LuxMaxMesh();
 	~LuxMaxMesh();
+	void createMeshesInGroup(INode *currNode, luxcore::Scene &scene);
 	void createMesh(INode *node, luxcore::Scene &scene);
-
 };
 
