@@ -16,6 +16,7 @@
 * limitations under the License.                                          *
 ***************************************************************************/
 #include "LRI_Light.h"
+#include "maxscript\maxscript.h"
 
 #define LRI_Light_CLASS_ID	Class_ID(0x5d2f7ac1, 0x7dd93354)
 
@@ -210,8 +211,8 @@ void LRI_Light::Reset()
 
 ParamDlg* LRI_Light::CreateParamDlg(HWND hwMtlEdit, IMtlParams *imp)
 {
+	ExecuteMAXScriptScript(L"mental_ray_Preferences.mrExtensionsActive = false");
 	IAutoMParamDlg* masterDlg = GetLRI_LightDesc()->CreateParamDlgs(hwMtlEdit, imp, this);
-
 	// TODO: Set param block user dialog if necessary
 	return masterDlg;
 }

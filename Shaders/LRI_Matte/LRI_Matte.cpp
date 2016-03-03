@@ -265,8 +265,8 @@ void LRI_Matte::Reset()
 
 ParamDlg* LRI_Matte::CreateParamDlg(HWND hwMtlEdit, IMtlParams *imp)
 {
+	ExecuteMAXScriptScript(L"mental_ray_Preferences.mrExtensionsActive = false");
 	IAutoMParamDlg* masterDlg = GetLRI_MatteDesc()->CreateParamDlgs(hwMtlEdit, imp, this);
-
 	// TODO: Set param block user dialog if necessary
 	return masterDlg;
 }
