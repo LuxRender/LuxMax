@@ -419,13 +419,12 @@ void LRI_Template::SetSubMtl(int i, Mtl* m)
 TSTR LRI_Template::GetSubMtlSlotName(int i)
 {
 	// Return i'th sub-material name
-	if (submtl[i] != NULL)
+	switch (i)
 	{
-		return submtl[i]->GetName();
-	}
-	else
-	{
-		return _T("");
+	case 0:
+		return _T("SubMaterial");
+	default:
+		return _T("SubMaterial");
 	}
 }
 
@@ -460,13 +459,14 @@ void LRI_Template::SetSubTexmap(int i, Texmap* tx)
 
 TSTR LRI_Template::GetSubTexmapSlotName(int i)
 {
-	if (subtexture[i] != NULL)
+	switch (i)
 	{
-		return subtexture[i]->GetName();
-	}
-	else
-	{
-		return _T("");
+	case 0:
+		return _T("Diffuse map");
+	case 1:
+		return _T("Bump Map");
+	default:
+		return _T("Diffuse Map");
 	}
 }
 
