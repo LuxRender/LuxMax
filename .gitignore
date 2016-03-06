@@ -6,3 +6,7 @@ intermidiate/LuxMax.tlog/
 ipch/
 LuxMax.opensdf
 *.sdf
+Shaders/LR_Matte/obj/
+Shaders/LR_Light/obj/
+Shaders/LR_Template/obj/
+intermidiate/

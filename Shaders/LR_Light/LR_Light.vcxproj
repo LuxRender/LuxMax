@@ -37,7 +37,7 @@
   </ImportGroup>
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Platform)'=='x64'">C:\Program Files\Autodesk\3ds Max 2016\plugins\</OutDir>
+    <OutDir Condition="'$(Platform)'=='x64'">$(ADSK_3DSMAX_X64_2016)\plugins\</OutDir>
     <IntDir>$(ProjectDir)\obj\$(MaxPlatform)\$(MaxConfiguration)\</IntDir>
     <TargetName>LR_Light</TargetName>
     <TargetExt>.dlt</TargetExt>

@@ -58,7 +58,7 @@
   </ImportGroup>
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir>C:\Program Files\Autodesk\3ds Max 2016\plugins\</OutDir>
+    <OutDir>$(ADSK_3DSMAX_X64_2016)\plugins\</OutDir>
     <TargetName>LuxMax</TargetName>
     <TargetExt>.dlr</TargetExt>
   </PropertyGroup>
@@ -122,7 +122,7 @@
       <WarningLevel>Level4</WarningLevel>
     </ClCompile>
     <Link>
-      <OutputFile>c:\Program Files\Autodesk\3ds Max 2016\plugins\LuxMax.dlr</OutputFile>
+      <OutputFile>$(ADSK_3DSMAX_X64_2016)\plugins\LuxMax.dlr</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
