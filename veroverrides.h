@@ -1,8 +1,8 @@
 // The to be #defined in a .h file included by a .rc file before maxversion.r
 
 
-#define MAXVER_INTERNALNAME "LuxMaxInternal\0"//should  be overidden on a per-dll level
-#define MAXVER_ORIGINALFILENAME "LuxMaxInternal.dlr\0"//should  be overidden on a per-dll level
+#define MAXVER_INTERNALNAME "LuxMax\0"//should  be overidden on a per-dll level
+#define MAXVER_ORIGINALFILENAME "LuxMax.dlr\0"//should  be overidden on a per-dll level
 #define MAXVER_FILEDESCRIPTION "VUE renderer (plugin)\0"//should  be overidden on a per-dll level
 #define MAXVER_COMMENTS "\0"//should  be overidden on a per-dll level
 

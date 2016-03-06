@@ -188,8 +188,8 @@
         {
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_1D8FEFE31D1C420D83BD9CBEFB5AED9D"
             {
-            "SourcePath" = "8:..\\install-files\\Plugin\\LuxMaxInternal.dlr"
-            "TargetName" = "8:LuxMaxInternal.dlr"
+            "SourcePath" = "8:..\\install-files\\Plugin\\LuxMax.dlr"
+            "TargetName" = "8:LuxMax.dlr"
             "Tag" = "8:"
             "Folder" = "8:_7F508D6072B741B58F71465182019C8B"
             "Condition" = "8:"

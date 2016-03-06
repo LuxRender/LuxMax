@@ -1,0 +1,8 @@
+LuxCam/obj/
+Shaders/LRI_Light/obj/
+Shaders/LRI_Matte/obj/
+Shaders/LRI_Template/obj/
+intermidiate/LuxMax.tlog/
+ipch/
+LuxMax.opensdf
+*.sdf

@@ -11,7 +11,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommand>C:\Program Files\Autodesk\3ds Max 2015\3dsmax.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommand>C:\Program Files\Autodesk\3ds Max 2016\3dsmax.exe</LocalDebuggerCommand>
     <LocalDebuggerWorkingDirectory>D:\Program Files\Autodesk\3ds Max 2016\</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>

@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by LuxMaxInternal.rc
+// Used by LuxMax.rc
 //
 #define IDS_LIBDESCRIPTION              1
 #define IDS_VRENDTITLE                  2
